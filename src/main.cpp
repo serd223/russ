@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <vector>
 #include <span>
+#include <cerrno>
+#include <cstring>
 
 namespace SDL {
     #include <SDL3/SDL.h>
