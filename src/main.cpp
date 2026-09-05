@@ -7,10 +7,28 @@ namespace SDL {
 }
 
 namespace Render {
-    typedef struct {
+    typedef struct __Vec3 {
         float x, y, z;
-        SDL::SDL_Color color;
+
+        struct __Vec3 cross(struct __Vec3 rhs) {
+            return {
+                this->y * rhs.z - this->z * rhs.y,
+                this->z * rhs.x - this->x * rhs.z,
+                this->x * rhs.y - this->y * rhs.x
+            };
+        }
     } Vec3;
+
+    Vec3 operator - (const Vec3& lhs, const Vec3& rhs) {
+        return {
+            lhs.x - rhs.x,
+            lhs.y - rhs.y,
+            lhs.z - rhs.z,
+        };   
+    }
+    typedef struct {
+        int a, b, c;
+    } Face;
 
     static void _drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, SDL::SDL_Color color) {
         int dx = x1 - x0;
@@ -108,7 +126,6 @@ namespace Render {
                 (vec.x * cosf(tetha) - vec.y * sinf(tetha)),
                 (vec.x * sinf(tetha) + vec.y * cosf(tetha)),
                 vec.z,
-                vec.color,
             };
         }
 
@@ -117,7 +134,6 @@ namespace Render {
                 (vec.x * cosf(tetha) + vec.z * sinf(tetha)),
                 vec.y,
                 -(vec.x * sinf(tetha) + vec.z * cosf(tetha)),
-                vec.color,
             };
         }
 
@@ -126,11 +142,33 @@ namespace Render {
                 vec.x,
                 (vec.y * cosf(tetha) - vec.z * sinf(tetha)),
                 (vec.y * sinf(tetha) + vec.z * cosf(tetha)),
-                vec.color,
             };
         }
 
-        void drawShape(std::vector<Vec3> vertices, std::vector<int> indices, float angle) {
+        Vec3 transformVertexRot(Vec3 vec, float tetha) {
+            Vec3 ret = vec;
+            ret = transformVertexRotX(ret, tetha);
+            ret = transformVertexRotY(ret, tetha);
+            ret = transformVertexRotZ(ret, tetha);
+            return ret;
+            
+        }
+
+        void drawModel(std::vector<Vec3> vertices, std::vector<Face> faces, float angle) {
+            for (std::size_t i = 0; i < faces.size(); i++) {
+                Vec3 v1 = transformVertexRot(vertices[faces[i].a], angle);
+                Vec3 v2 = transformVertexRot(vertices[faces[i].b], angle);
+                Vec3 v3 = transformVertexRot(vertices[faces[i].c], angle);
+                Vec3 l1 = (v1 - v2);
+                Vec3 l2 = (v1 - v3);
+                Vec3 n = l1.cross(l2);
+
+                if (n.z < 0.0) continue;
+                drawShape(vertices, {faces[i].a, faces[i].b, faces[i].c, faces[i].a}, angle, {255, 0, 0, 255});
+            }
+        }
+        
+        void drawShape(std::vector<Vec3> vertices, std::vector<int> indices, float angle, SDL::SDL_Color color) {
             for (std::size_t i = 0; i < indices.size() - 1; i++) {
                 Vec3 vec1 = transformVertexRotX(vertices[indices[i]], angle);
                 vec1 = transformVertexRotY(vec1, angle);
@@ -143,7 +181,7 @@ namespace Render {
                          (int)(vec2.x * 100.0f + 200.0f),
                          (int)(vec1.y * 100.0f + 200.0f),
                          (int)(vec2.y * 100.0f + 200.0f),
-                         vec1.color
+                         color
                  );
             }
         }
@@ -156,17 +194,40 @@ int main() {
     Renderer render = Renderer("russ - dev", 800, 600);
 
     std::vector<Vec3> vertices = {
-        /*0*/{ 0.5f,   0.5f,   0.5f, {255, 0, 0, 255}},
-        /*1*/{ 0.5f,   0.5f,  -0.5f, {255, 0, 0, 255}},
-        /*2*/{-0.5f,   0.5f,  -0.5f, {255, 0, 0, 255}},
-        /*3*/{-0.5f,   0.5f,   0.5f, {255, 0, 0, 255}},
-        /*4*/{-0.5f,  -0.5f,   0.5f, {255, 0, 0, 255}},
-        /*5*/{ 0.5f,  -0.5f,   0.5f, {255, 0, 0, 255}},
-        /*6*/{ 0.5f,  -0.5f,  -0.5f, {255, 0, 0, 255}},
-        /*7*/{-0.5f,  -0.5f,  -0.5f, {255, 0, 0, 255}},
+        /*0*/{ 0.5f,   0.5f,   0.5f},
+        /*1*/{ 0.5f,   0.5f,  -0.5f},
+        /*2*/{-0.5f,   0.5f,  -0.5f},
+        /*3*/{-0.5f,   0.5f,   0.5f},
+        /*4*/{-0.5f,  -0.5f,   0.5f},
+        /*5*/{ 0.5f,  -0.5f,   0.5f},
+        /*6*/{ 0.5f,  -0.5f,  -0.5f},
+        /*7*/{-0.5f,  -0.5f,  -0.5f},
     };
-    auto indexArr = {
-        0, 1, 2 ,3, 0, 5, 6, 5, 4, 7, 6, 1, 2, 7, 4, 3
+
+    std::vector<Face> faces = {
+        // Top face (+Y)
+        {0, 1, 2},
+        {0, 2, 3},
+
+        // Bottom face (-Y)
+        {5, 7, 6},
+        {5, 4, 7},
+
+        // Front face (+Z)
+        {0, 3, 4},
+        {0, 4, 5},
+
+        // Back face (-Z)
+        {1, 6, 7},
+        {1, 7, 2},
+
+        // Right face (+X)
+        {0, 5, 6},
+        {0, 6, 1},
+
+        // Left face (-X)
+        {3, 2, 7},
+        {3, 7, 4},
     };
 
     SDL::Uint32 now = SDL::SDL_GetPerformanceCounter();
@@ -185,7 +246,8 @@ int main() {
         }
         angle += M_PI_4 * delta;
         render.clear({40, 44, 52, 255});
-        render.drawShape(vertices, indexArr, angle);
+        // render.drawShape(vertices, indexArr, angle, {255, 0, 0, 255});
+        render.drawModel(vertices, faces, angle);
         SDL::SDL_UpdateWindowSurface(render.inner_window);
     }
     loop_end:
