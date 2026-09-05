@@ -1,11 +1,17 @@
 #include <math.h>
 #include <stdio.h>
+#include <vector>
 
 namespace SDL {
     #include <SDL3/SDL.h>
 }
 
 namespace Render {
+    typedef struct {
+        int x, y, z;
+        SDL::SDL_Color color;
+    } iVec3;
+
     static void _drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, SDL::SDL_Color color) {
         int dx = x1 - x0;
         int dy = y1 - y0;
@@ -62,7 +68,7 @@ namespace Render {
             if (y0 > y1) {
                 _drawLineHigh(surface, x1, x0, y1, y0, color);
             } else {
-                _drawLineHigh(surface, x0, x0, y0, y1, color);
+                _drawLineHigh(surface, x0, x1, y0, y1, color);
             }
         }
     }
@@ -89,6 +95,12 @@ namespace Render {
         }
         void drawLine(int x0, int x1, int y0, int y1, SDL::SDL_Color color) {
             _drawLine(inner_surface, x0, x1, y0, y1, color);
+            printf("Drawing from (%d, %d) -> (%d, %d)\n", x0, y0, x1, y1);
+        }
+        void drawShape(std::vector<iVec3> vertices, std::vector<int> indices) {
+            for (std::size_t i = 0; i < indices.size() - 1; i++) {
+                drawLine(vertices[indices[i]].x, vertices[indices[i + 1]].x, vertices[indices[i]].y, vertices[indices[i + 1]].y, vertices[indices[i]].color);
+            }
         }
     };
 }
@@ -100,11 +112,14 @@ int main() {
 
     SDL::SDL_Event event;
 
-    render.drawLine(585, 15, 310, 310,  {255, 0, 0, 255});
-    render.drawLine(15,  300, 50,  180, {0, 255, 0, 255});
-    render.drawLine(585, 300, 50,  180, {0, 255, 0, 255});
-    render.drawLine(15,  300, 310, 180, {0, 255, 0, 255});
-    render.drawLine(585, 300, 310, 180, {0, 255, 0, 255});
+    Render::iVec3 vec1 = {40, 45, 200, {255, 0, 0, 255}}; // Red
+    Render::iVec3 vec2 = {80, 90, 200, {255, 255, 0, 255}}; // Yellow
+    Render::iVec3 vec3 = {70, 70, 200, {255, 0, 255, 255}}; // Msgenta
+    Render::iVec3 vec4 = {120, 68, 200, {255, 255, 255, 255}};  // whoite
+
+    auto indexArr = {0, 1, 2, 3, 0};
+    render.drawShape({vec1, vec2, vec3, vec4}, indexArr);
+
 
     for (;;) {
         while (SDL::SDL_PollEvent(&event)) {
