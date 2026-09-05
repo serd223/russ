@@ -5,8 +5,7 @@
 ## Build Instructions
 
 ```
-  $ # Download teapot model from https://github.com/alecjacobson/common-3d-test-models/blob/master/data/teapot.obj
-  $ # and place it in obj/teapot.obj
+  $ make teapot # Downloads teapot obj
   $ mkdir -p bin
   $ make
   $ ./bin/main
