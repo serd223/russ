@@ -8,7 +8,7 @@
   $ make teapot # Downloads teapot obj
   $ mkdir -p bin
   $ make
-  $ ./bin/main
+  $ ./bin/main ./obj/teapot.obj
 ```
 
 

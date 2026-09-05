@@ -185,52 +185,55 @@ namespace Render {
 }
 using namespace Render;
 
-int main() {
-    SDL::SDL_Init(SDL_INIT_VIDEO);
-    Renderer render = Renderer("russ - dev", 800, 600);
+extern const Vec3 cube_vertices[8] = {
+    { 0.5f,   0.5f,   0.5f},
+    { 0.5f,   0.5f,  -0.5f},
+    {-0.5f,   0.5f,  -0.5f},
+    {-0.5f,   0.5f,   0.5f},
+    {-0.5f,  -0.5f,   0.5f},
+    { 0.5f,  -0.5f,   0.5f},
+    { 0.5f,  -0.5f,  -0.5f},
+    {-0.5f,  -0.5f,  -0.5f},
+};
 
-    std::vector<Vec3> vertices = {
-        // /*0*/{ 0.5f,   0.5f,   0.5f},
-        // /*1*/{ 0.5f,   0.5f,  -0.5f},
-        // /*2*/{-0.5f,   0.5f,  -0.5f},
-        // /*3*/{-0.5f,   0.5f,   0.5f},
-        // /*4*/{-0.5f,  -0.5f,   0.5f},
-        // /*5*/{ 0.5f,  -0.5f,   0.5f},
-        // /*6*/{ 0.5f,  -0.5f,  -0.5f},
-        // /*7*/{-0.5f,  -0.5f,  -0.5f},
-    };
+extern const Face cube_faces[12] = {
+        {0, 1, 2},
+        {0, 2, 3},
+        {5, 7, 6},
+        {5, 4, 7},
+        {0, 3, 4},
+        {0, 4, 5},
+        {1, 6, 7},
+        {1, 7, 2},
+        {0, 5, 6},
+        {0, 6, 1},
+        {3, 2, 7},
+        {3, 7, 4},
+};
 
-    std::vector<Face> faces = {
-        // Top face (+Y)
-        // {0, 1, 2},
-        // {0, 2, 3},
+int main(int argc, const char** argv) {
+    if (argc < 2) {
+        printf("Usage: %s <path to .obj file>\n", argv[0]);
+        return 1;
+    }
 
-        // // Bottom face (-Y)
-        // {5, 7, 6},
-        // {5, 4, 7},
+    std::vector<Vec3> vertices;
+    std::vector<Face> faces;
 
-        // // Front face (+Z)
-        // {0, 3, 4},
-        // {0, 4, 5},
+    const char* obj_file_path = argv[1];
+    FILE* f = fopen(obj_file_path, "r");
+    if (f == NULL) {
+        printf("[ERROR] Couldn't open file '%s': %s\n", obj_file_path, strerror(errno));
+        return 1;
+    }
 
-        // // Back face (-Z)
-        // {1, 6, 7},
-        // {1, 7, 2},
-
-        // // Right face (+X)
-        // {0, 5, 6},
-        // {0, 6, 1},
-
-        // // Left face (-X)
-        // {3, 2, 7},
-        // {3, 7, 4},
-    };
-    FILE* f = fopen("./obj/teapot.obj", "r");
+    printf("Loading object from file '%s'...\n", obj_file_path);
+    
     float x, y, z;
     while (fscanf(f, "v %f %f %f\n", &x, &y, &z) >= 3) {
         vertices.push_back({x, y, z});
     };
-    printf("Vertices len: %lu\n", vertices.size());
+
     int a, b, c;
     while (fscanf(f, "f %d %d %d\n", &a, &b, &c) >= 3) {
         faces.push_back({a, b, c});
@@ -238,6 +241,11 @@ int main() {
     if (fscanf(f, "f %d %d %d", &a, &b, &c) >= 3) {
         faces.push_back({a, b, c});
     }
+
+    printf("Succesfully loaded %lu vertices and %lu faces from file '%s'.\n", vertices.size(), faces.size(), obj_file_path);
+
+    SDL::SDL_Init(SDL_INIT_VIDEO);
+    Renderer render = Renderer("russ - dev", 800, 600);
 
     SDL::Uint32 now = SDL::SDL_GetPerformanceCounter();
     SDL::Uint32 last;
