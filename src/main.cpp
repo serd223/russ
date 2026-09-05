@@ -14,6 +14,45 @@ namespace SDL {
 namespace Render {
     using namespace rmath;
 
+    class Model {
+        public:
+        std::vector<Vec3> vertices;
+        std::vector<iVec3> faces;
+        Vec3 rot = {0, 0, 0};
+        float scale = 1.0f;
+        Mat3x3 transform = Mat3x3::id();
+
+        Model(const char* obj_file_path) {
+            FILE* f = fopen(obj_file_path, "r");
+            if (f == NULL) {
+                printf("[ERROR] Couldn't open file '%s': %s\n", obj_file_path, strerror(errno));
+                throw;
+            }
+
+            printf("Loading object from file '%s'...\n", obj_file_path);
+
+            float x, y, z;
+            while (fscanf(f, "v %f %f %f\n", &x, &y, &z) >= 3) {
+                vertices.push_back({x, y, z});
+            };
+
+            int a, b, c;
+            while (fscanf(f, "f %d %d %d\n", &a, &b, &c) >= 3) {
+                faces.push_back({a, b, c});
+            };
+            if (fscanf(f, "f %d %d %d", &a, &b, &c) >= 3) {
+                faces.push_back({a, b, c});
+            }
+
+            printf("Succesfully loaded %lu vertices and %lu faces from file '%s'.\n", vertices.size(), faces.size(), obj_file_path);
+        }
+
+        Model(std::vector<Vec3> vertices, std::vector<iVec3> faces) {
+            this->vertices = vertices;
+            this->faces = faces;
+        }
+    };
+
     static void _drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, SDL::SDL_Color color) {
         int dx = x1 - x0;
         int dy = y1 - y0;
@@ -107,17 +146,26 @@ namespace Render {
             _drawLine(inner_surface, x0, x1, y0, y1, color);
         }
 
-        void drawModel(std::span<const Vec3> vertices, std::span<const Face> faces, Vec3 rot, Color tint) {
-            for (std::size_t i = 0; i < faces.size(); i++) {
-                Vec3 v1 = Mat3x3::rotXYZ(rot) * vertices[faces[i].a];
-                Vec3 v2 = Mat3x3::rotXYZ(rot) * vertices[faces[i].b];
-                Vec3 v3 = Mat3x3::rotXYZ(rot) * vertices[faces[i].c];
+        void drawLine(Vec3 v1, Vec3 v2, Color color) {
+            drawLine((int)v1.x, (int)v2.x, (int)v1.y, (int)v2.y, color);
+        }
+
+        void drawModel(Model& model, Color tint) {
+            for (std::size_t i = 0; i < model.faces.size(); i++) {
+                Vec3 v1 = model.transform * Mat3x3::rotXYZ(model.rot) * model.vertices[model.faces[i].a];
+                Vec3 v2 = model.transform * Mat3x3::rotXYZ(model.rot) * model.vertices[model.faces[i].b];
+                Vec3 v3 = model.transform * Mat3x3::rotXYZ(model.rot) * model.vertices[model.faces[i].c];
                 Vec3 l1 = (v1 - v2);
                 Vec3 l2 = (v1 - v3);
                 Vec3 n = l1.cross(l2);
 
                 if (n.z < 0.0) continue;
-                drawShape((const Vec3[]){v1, v2, v3}, (const int[]){0, 1, 2, 0}, tint);
+
+                // TODO: Have some way outside of this method to specify position
+                const Vec3 position = {200, 200, 200};
+                drawLine(v1 * model.scale + position, v2 * model.scale + position, tint);
+                drawLine(v2 * model.scale + position, v3 * model.scale + position, tint);
+                drawLine(v3 * model.scale + position, v1 * model.scale + position, tint);
             }
         }
         
@@ -149,19 +197,19 @@ extern const Vec3 cube_vertices[8] = {
     {-0.5f,  -0.5f,  -0.5f},
 };
 
-extern const Face cube_faces[12] = {
-        {0, 1, 2},
-        {0, 2, 3},
-        {5, 7, 6},
-        {5, 4, 7},
-        {0, 3, 4},
-        {0, 4, 5},
-        {1, 6, 7},
-        {1, 7, 2},
-        {0, 5, 6},
-        {0, 6, 1},
-        {3, 2, 7},
-        {3, 7, 4},
+extern const iVec3 cube_faces[12] = {
+    {0, 1, 2},
+    {0, 2, 3},
+    {5, 7, 6},
+    {5, 4, 7},
+    {0, 3, 4},
+    {0, 4, 5},
+    {1, 6, 7},
+    {1, 7, 2},
+    {0, 5, 6},
+    {0, 6, 1},
+    {3, 2, 7},
+    {3, 7, 4},
 };
 
 int main(int argc, const char** argv) {
@@ -170,32 +218,11 @@ int main(int argc, const char** argv) {
         return 1;
     }
 
-    std::vector<Vec3> vertices;
-    std::vector<Face> faces;
-
     const char* obj_file_path = argv[1];
-    FILE* f = fopen(obj_file_path, "r");
-    if (f == NULL) {
-        printf("[ERROR] Couldn't open file '%s': %s\n", obj_file_path, strerror(errno));
-        return 1;
-    }
 
-    printf("Loading object from file '%s'...\n", obj_file_path);
-    
-    float x, y, z;
-    while (fscanf(f, "v %f %f %f\n", &x, &y, &z) >= 3) {
-        vertices.push_back({x, y, z});
-    };
-
-    int a, b, c;
-    while (fscanf(f, "f %d %d %d\n", &a, &b, &c) >= 3) {
-        faces.push_back({a, b, c});
-    };
-    if (fscanf(f, "f %d %d %d", &a, &b, &c) >= 3) {
-        faces.push_back({a, b, c});
-    }
-
-    printf("Succesfully loaded %lu vertices and %lu faces from file '%s'.\n", vertices.size(), faces.size(), obj_file_path);
+    Model model(obj_file_path);
+    model.scale = 50.0f;
+    model.rot = {M_PI, 0, 0};
 
     SDL::SDL_Init(SDL_INIT_VIDEO);
     Renderer render = Renderer("russ - dev", 800, 600);
@@ -203,7 +230,6 @@ int main(int argc, const char** argv) {
     SDL::Uint32 now = SDL::SDL_GetPerformanceCounter();
     SDL::Uint32 last;
     double delta;
-    float angle = 0.0f;
 
     SDL::SDL_Event event;
     for (;;) {
@@ -214,11 +240,9 @@ int main(int argc, const char** argv) {
         while (SDL::SDL_PollEvent(&event)) {
             if (event.type == SDL::SDL_EVENT_QUIT) goto loop_end;
         }
-        angle += M_PI_4 * delta;
+        model.rot.y += M_PI_4 * delta;
         render.clear({40, 44, 52, 255});
-        // render.drawShape(vertices, indexArr, angle, {255, 0, 0, 255});
-        render.drawModel(vertices, faces, {M_PI, angle, 0}, {255, 0, 0, 255});
-        // render.drawModel(vertices, faces, M_PI);
+        render.drawModel(model, {255, 0, 0, 255});
         SDL::SDL_UpdateWindowSurface(render.inner_window);
     }
     loop_end:

@@ -97,4 +97,14 @@ namespace rmath {
     Mat3x3 Mat3x3::rotXYZ(Vec3 rot) {
         return Mat3x3::rotX(rot.x) * Mat3x3::rotY(rot.y) * Mat3x3::rotZ(rot.z);
     }
+
+    const Mat3x3 Mat3x3::id() {
+        return {
+            .xs = {
+                1, 0, 0,
+                0, 1, 0,
+                0, 0, 1,
+            }
+        };
+    }
 }

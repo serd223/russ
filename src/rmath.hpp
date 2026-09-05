@@ -1,10 +1,11 @@
 #pragma once
 
 namespace rmath {
-    typedef struct Vec3 {
+    class Vec3 {
+        public:
         float x, y, z;
-        struct Vec3 cross(struct Vec3 rhs); 
-    } Vec3;
+        Vec3 cross(Vec3 rhs);
+    };
 
     Vec3 operator + (const Vec3& lhs, const Vec3& rhs);
     Vec3 operator - (const Vec3& lhs, const Vec3& rhs);
@@ -12,11 +13,13 @@ namespace rmath {
     Vec3 operator * (const Vec3& lhs, const float& rhs);
     Vec3 operator * (const float& lhs, const Vec3& rhs);
 
-    typedef struct {
+    class iVec3 {
+        public:
         int a, b, c;
-    } Face;
+    };
 
-    typedef struct Mat3x3 {
+    class Mat3x3 {
+        public:
         union {
             struct {
                 float _00, _01, _02;
@@ -31,11 +34,12 @@ namespace rmath {
             };
         };
 
-        static struct Mat3x3 rotXYZ(Vec3 rot);
-        static struct Mat3x3 rotX(float angle);
-        static struct Mat3x3 rotY(float angle);
-        static struct Mat3x3 rotZ(float angle);
-    } Mat3x3;
+        static Mat3x3 rotXYZ(Vec3 rot);
+        static Mat3x3 rotX(float angle);
+        static Mat3x3 rotY(float angle);
+        static Mat3x3 rotZ(float angle);
+        const static Mat3x3 id();
+    };
 
     Mat3x3 operator * (const Mat3x3& lhs, const Mat3x3& rhs);
     Vec3 operator * (const Mat3x3& lhs, const Vec3& rhs);
