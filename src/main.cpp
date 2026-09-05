@@ -147,9 +147,9 @@ namespace Render {
 
         Vec3 transformVertexRot(Vec3 vec, float tetha) {
             Vec3 ret = vec;
-            ret = transformVertexRotX(ret, tetha);
+            ret = transformVertexRotX(ret, M_PI);
             ret = transformVertexRotY(ret, tetha);
-            ret = transformVertexRotZ(ret, tetha);
+            // ret = transformVertexRotZ(ret, tetha);
             return ret;
             
         }
@@ -170,17 +170,13 @@ namespace Render {
         
         void drawShape(std::vector<Vec3> vertices, std::vector<int> indices, float angle, SDL::SDL_Color color) {
             for (std::size_t i = 0; i < indices.size() - 1; i++) {
-                Vec3 vec1 = transformVertexRotX(vertices[indices[i]], angle);
-                vec1 = transformVertexRotY(vec1, angle);
-                vec1 = transformVertexRotZ(vec1, angle);
-                Vec3 vec2 = transformVertexRotX(vertices[indices[i + 1]], angle);
-                vec2 = transformVertexRotY(vec2, angle);
-                vec2 = transformVertexRotZ(vec2, angle);
+                Vec3 vec1 = transformVertexRot(vertices[indices[i]], angle);
+                Vec3 vec2 = transformVertexRot(vertices[indices[i + 1]], angle);
                 drawLine(
-                         (int)(vec1.x * 100.0f + 200.0f),
-                         (int)(vec2.x * 100.0f + 200.0f),
-                         (int)(vec1.y * 100.0f + 200.0f),
-                         (int)(vec2.y * 100.0f + 200.0f),
+                         (int)(vec1.x * 50.0f + 200.0f),
+                         (int)(vec2.x * 50.0f + 200.0f),
+                         (int)(vec1.y * 50.0f + 200.0f),
+                         (int)(vec2.y * 50.0f + 200.0f),
                          color
                  );
             }
@@ -194,41 +190,54 @@ int main() {
     Renderer render = Renderer("russ - dev", 800, 600);
 
     std::vector<Vec3> vertices = {
-        /*0*/{ 0.5f,   0.5f,   0.5f},
-        /*1*/{ 0.5f,   0.5f,  -0.5f},
-        /*2*/{-0.5f,   0.5f,  -0.5f},
-        /*3*/{-0.5f,   0.5f,   0.5f},
-        /*4*/{-0.5f,  -0.5f,   0.5f},
-        /*5*/{ 0.5f,  -0.5f,   0.5f},
-        /*6*/{ 0.5f,  -0.5f,  -0.5f},
-        /*7*/{-0.5f,  -0.5f,  -0.5f},
+        // /*0*/{ 0.5f,   0.5f,   0.5f},
+        // /*1*/{ 0.5f,   0.5f,  -0.5f},
+        // /*2*/{-0.5f,   0.5f,  -0.5f},
+        // /*3*/{-0.5f,   0.5f,   0.5f},
+        // /*4*/{-0.5f,  -0.5f,   0.5f},
+        // /*5*/{ 0.5f,  -0.5f,   0.5f},
+        // /*6*/{ 0.5f,  -0.5f,  -0.5f},
+        // /*7*/{-0.5f,  -0.5f,  -0.5f},
     };
 
     std::vector<Face> faces = {
         // Top face (+Y)
-        {0, 1, 2},
-        {0, 2, 3},
+        // {0, 1, 2},
+        // {0, 2, 3},
 
-        // Bottom face (-Y)
-        {5, 7, 6},
-        {5, 4, 7},
+        // // Bottom face (-Y)
+        // {5, 7, 6},
+        // {5, 4, 7},
 
-        // Front face (+Z)
-        {0, 3, 4},
-        {0, 4, 5},
+        // // Front face (+Z)
+        // {0, 3, 4},
+        // {0, 4, 5},
 
-        // Back face (-Z)
-        {1, 6, 7},
-        {1, 7, 2},
+        // // Back face (-Z)
+        // {1, 6, 7},
+        // {1, 7, 2},
 
-        // Right face (+X)
-        {0, 5, 6},
-        {0, 6, 1},
+        // // Right face (+X)
+        // {0, 5, 6},
+        // {0, 6, 1},
 
-        // Left face (-X)
-        {3, 2, 7},
-        {3, 7, 4},
+        // // Left face (-X)
+        // {3, 2, 7},
+        // {3, 7, 4},
     };
+    FILE* f = fopen("./obj/teapot.obj", "r");
+    float x, y, z;
+    while (fscanf(f, "v %f %f %f\n", &x, &y, &z) >= 3) {
+        vertices.push_back({x, y, z});
+    };
+    printf("Vertices len: %lu\n", vertices.size());
+    int a, b, c;
+    while (fscanf(f, "f %d %d %d\n", &a, &b, &c) >= 3) {
+        faces.push_back({a, b, c});
+    };
+    if (fscanf(f, "f %d %d %d", &a, &b, &c) >= 3) {
+        faces.push_back({a, b, c});
+    }
 
     SDL::Uint32 now = SDL::SDL_GetPerformanceCounter();
     SDL::Uint32 last;
@@ -248,6 +257,7 @@ int main() {
         render.clear({40, 44, 52, 255});
         // render.drawShape(vertices, indexArr, angle, {255, 0, 0, 255});
         render.drawModel(vertices, faces, angle);
+        // render.drawModel(vertices, faces, M_PI);
         SDL::SDL_UpdateWindowSurface(render.inner_window);
     }
     loop_end:
