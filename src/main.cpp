@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <vector>
+#include <span>
 
 namespace SDL {
     #include <SDL3/SDL.h>
@@ -91,6 +92,8 @@ namespace Render {
         }
     }
 
+    typedef SDL::SDL_Color Color;
+    
     class Renderer {
         public:
         SDL::SDL_Window* inner_window;
@@ -112,12 +115,12 @@ namespace Render {
             SDL::SDL_DestroyWindowSurface(inner_window);
         }
 
-        void clear(SDL::SDL_Color color) {
+        void clear(Color color) {
             // TODO: error checking
             SDL::SDL_ClearSurface(inner_surface, (float)color.r / 255.0f, (float)color.g / 255.0f, (float)color.b / 255.0f, (float)color.a / 255.0f);
         }
         
-        void drawLine(int x0, int x1, int y0, int y1, SDL::SDL_Color color) {
+        void drawLine(int x0, int x1, int y0, int y1, Color color) {
             _drawLine(inner_surface, x0, x1, y0, y1, color);
         }
 
@@ -154,7 +157,7 @@ namespace Render {
             
         }
 
-        void drawModel(std::vector<Vec3> vertices, std::vector<Face> faces, float angle) {
+        void drawModel(std::span<const Vec3> vertices, std::span<const Face> faces, float angle, Color tint) {
             for (std::size_t i = 0; i < faces.size(); i++) {
                 Vec3 v1 = transformVertexRot(vertices[faces[i].a], angle);
                 Vec3 v2 = transformVertexRot(vertices[faces[i].b], angle);
@@ -164,14 +167,14 @@ namespace Render {
                 Vec3 n = l1.cross(l2);
 
                 if (n.z < 0.0) continue;
-                drawShape(vertices, {faces[i].a, faces[i].b, faces[i].c, faces[i].a}, angle, {255, 0, 0, 255});
+                drawShape((const Vec3[]){v1, v2, v3}, (const int[]){0, 1, 2, 0}, tint);
             }
         }
         
-        void drawShape(std::vector<Vec3> vertices, std::vector<int> indices, float angle, SDL::SDL_Color color) {
+        void drawShape(std::span<const Vec3> vertices, std::span<const int> indices, Color color) {
             for (std::size_t i = 0; i < indices.size() - 1; i++) {
-                Vec3 vec1 = transformVertexRot(vertices[indices[i]], angle);
-                Vec3 vec2 = transformVertexRot(vertices[indices[i + 1]], angle);
+                Vec3 vec1 = vertices[indices[i]];
+                Vec3 vec2 = vertices[indices[i + 1]];
                 drawLine(
                          (int)(vec1.x * 50.0f + 200.0f),
                          (int)(vec2.x * 50.0f + 200.0f),
@@ -264,7 +267,7 @@ int main(int argc, const char** argv) {
         angle += M_PI_4 * delta;
         render.clear({40, 44, 52, 255});
         // render.drawShape(vertices, indexArr, angle, {255, 0, 0, 255});
-        render.drawModel(vertices, faces, angle);
+        render.drawModel(vertices, faces, angle, {255, 0, 0, 255});
         // render.drawModel(vertices, faces, M_PI);
         SDL::SDL_UpdateWindowSurface(render.inner_window);
     }
