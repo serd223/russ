@@ -112,7 +112,7 @@ namespace Render {
             }
         }
         ~Renderer() {
-            SDL::SDL_DestroyWindowSurface(inner_window);
+            SDL::SDL_DestroyWindow(inner_window);
         }
 
         void clear(Color color) {
