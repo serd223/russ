@@ -8,9 +8,9 @@ namespace SDL {
 
 namespace Render {
     typedef struct {
-        int x, y, z;
+        float x, y, z;
         SDL::SDL_Color color;
-    } iVec3;
+    } Vec3;
 
     static void _drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, SDL::SDL_Color color) {
         int dx = x1 - x0;
@@ -93,13 +93,58 @@ namespace Render {
         ~Renderer() {
             SDL::SDL_DestroyWindowSurface(inner_window);
         }
+
+        void clear(SDL::SDL_Color color) {
+            // TODO: error checking
+            SDL::SDL_ClearSurface(inner_surface, (float)color.r / 255.0f, (float)color.g / 255.0f, (float)color.b / 255.0f, (float)color.a / 255.0f);
+        }
+        
         void drawLine(int x0, int x1, int y0, int y1, SDL::SDL_Color color) {
             _drawLine(inner_surface, x0, x1, y0, y1, color);
-            printf("Drawing from (%d, %d) -> (%d, %d)\n", x0, y0, x1, y1);
         }
-        void drawShape(std::vector<iVec3> vertices, std::vector<int> indices) {
+
+        Vec3 transformVertexRotZ(Vec3 vec, float tetha) {
+            return {
+                (vec.x * cosf(tetha) - vec.y * sinf(tetha)),
+                (vec.x * sinf(tetha) + vec.y * cosf(tetha)),
+                vec.z,
+                vec.color,
+            };
+        }
+
+        Vec3 transformVertexRotY(Vec3 vec, float tetha) {
+            return {
+                (vec.x * cosf(tetha) + vec.z * sinf(tetha)),
+                vec.y,
+                -(vec.x * sinf(tetha) + vec.z * cosf(tetha)),
+                vec.color,
+            };
+        }
+
+        Vec3 transformVertexRotX(Vec3 vec, float tetha) {
+            return {
+                vec.x,
+                (vec.y * cosf(tetha) - vec.z * sinf(tetha)),
+                (vec.y * sinf(tetha) + vec.z * cosf(tetha)),
+                vec.color,
+            };
+        }
+
+        void drawShape(std::vector<Vec3> vertices, std::vector<int> indices, float angle) {
             for (std::size_t i = 0; i < indices.size() - 1; i++) {
-                drawLine(vertices[indices[i]].x, vertices[indices[i + 1]].x, vertices[indices[i]].y, vertices[indices[i + 1]].y, vertices[indices[i]].color);
+                Vec3 vec1 = transformVertexRotX(vertices[indices[i]], angle);
+                vec1 = transformVertexRotY(vec1, angle);
+                vec1 = transformVertexRotZ(vec1, angle);
+                Vec3 vec2 = transformVertexRotX(vertices[indices[i + 1]], angle);
+                vec2 = transformVertexRotY(vec2, angle);
+                vec2 = transformVertexRotZ(vec2, angle);
+                drawLine(
+                         (int)(vec1.x * 100.0f + 200.0f),
+                         (int)(vec2.x * 100.0f + 200.0f),
+                         (int)(vec1.y * 100.0f + 200.0f),
+                         (int)(vec2.y * 100.0f + 200.0f),
+                         vec1.color
+                 );
             }
         }
     };
@@ -110,21 +155,37 @@ int main() {
     SDL::SDL_Init(SDL_INIT_VIDEO);
     Renderer render = Renderer("russ - dev", 800, 600);
 
+    std::vector<Vec3> vertices = {
+        /*0*/{ 0.5f,   0.5f,   0.5f, {255, 0, 0, 255}},
+        /*1*/{ 0.5f,   0.5f,  -0.5f, {255, 0, 0, 255}},
+        /*2*/{-0.5f,   0.5f,  -0.5f, {255, 0, 0, 255}},
+        /*3*/{-0.5f,   0.5f,   0.5f, {255, 0, 0, 255}},
+        /*4*/{-0.5f,  -0.5f,   0.5f, {255, 0, 0, 255}},
+        /*5*/{ 0.5f,  -0.5f,   0.5f, {255, 0, 0, 255}},
+        /*6*/{ 0.5f,  -0.5f,  -0.5f, {255, 0, 0, 255}},
+        /*7*/{-0.5f,  -0.5f,  -0.5f, {255, 0, 0, 255}},
+    };
+    auto indexArr = {
+        0, 1, 2 ,3, 0, 5, 6, 5, 4, 7, 6, 1, 2, 7, 4, 3
+    };
+
+    SDL::Uint32 now = SDL::SDL_GetPerformanceCounter();
+    SDL::Uint32 last;
+    double delta;
+    float angle = 0.0f;
+
     SDL::SDL_Event event;
-
-    Render::iVec3 vec1 = {40, 45, 200, {255, 0, 0, 255}}; // Red
-    Render::iVec3 vec2 = {80, 90, 200, {255, 255, 0, 255}}; // Yellow
-    Render::iVec3 vec3 = {70, 70, 200, {255, 0, 255, 255}}; // Msgenta
-    Render::iVec3 vec4 = {120, 68, 200, {255, 255, 255, 255}};  // whoite
-
-    auto indexArr = {0, 1, 2, 3, 0};
-    render.drawShape({vec1, vec2, vec3, vec4}, indexArr);
-
-
     for (;;) {
+        last = now;
+        now = SDL::SDL_GetPerformanceCounter();
+        delta = (double)(now - last) / (double)(SDL::SDL_GetPerformanceFrequency());
+
         while (SDL::SDL_PollEvent(&event)) {
             if (event.type == SDL::SDL_EVENT_QUIT) goto loop_end;
         }
+        angle += M_PI_4 * delta;
+        render.clear({40, 44, 52, 255});
+        render.drawShape(vertices, indexArr, angle);
         SDL::SDL_UpdateWindowSurface(render.inner_window);
     }
     loop_end:
