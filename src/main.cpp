@@ -15,7 +15,7 @@ void drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, SDL
     int D = (2 * dx) - dy;
     int x = x0;
 
-    for (int y = y0; y < y1; y++) {
+    for (int y = y0; y <= y1; y++) {
         SDL::SDL_WriteSurfacePixel(surface, x, y, color.r, color.g, color.b, color.a);
         if (D > 0) {
             x += xi;
@@ -38,7 +38,7 @@ void drawLineLow(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, SDL:
     int D = (2 * dy) - dx;
     int y = y0;
 
-    for (int x = x0; x < x1; x++) {
+    for (int x = x0; x <= x1; x++) {
         SDL::SDL_WriteSurfacePixel(surface, x, y, color.r, color.g, color.b, color.a);
         if (D > 0) {
             y += yi;
@@ -72,11 +72,11 @@ int main() {
     SDL::SDL_Event event;
     SDL::SDL_Surface* surface = SDL::SDL_GetWindowSurface(win);
 
+    drawLine(surface, 585, 15, 310, 310,  {255, 0, 0, 255});
     drawLine(surface, 15,  300, 50,  180, {0, 255, 0, 255});
     drawLine(surface, 585, 300, 50,  180, {0, 255, 0, 255});
     drawLine(surface, 15,  300, 310, 180, {0, 255, 0, 255});
     drawLine(surface, 585, 300, 310, 180, {0, 255, 0, 255});
-    drawLine(surface, 585, 15, 310, 310,  {255, 0, 0, 255});
 
     for (;;) {
         while (SDL::SDL_PollEvent(&event)) {
