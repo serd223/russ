@@ -105,44 +105,11 @@ namespace Render {
             _drawLine(inner_surface, x0, x1, y0, y1, color);
         }
 
-        Vec3 transformVertexRotZ(Vec3 vec, float tetha) {
-            return {
-                (vec.x * cosf(tetha) - vec.y * sinf(tetha)),
-                (vec.x * sinf(tetha) + vec.y * cosf(tetha)),
-                vec.z,
-            };
-        }
-
-        Vec3 transformVertexRotY(Vec3 vec, float tetha) {
-            return {
-                (vec.x * cosf(tetha) + vec.z * sinf(tetha)),
-                vec.y,
-                -(vec.x * sinf(tetha) + vec.z * cosf(tetha)),
-            };
-        }
-
-        Vec3 transformVertexRotX(Vec3 vec, float tetha) {
-            return {
-                vec.x,
-                (vec.y * cosf(tetha) - vec.z * sinf(tetha)),
-                (vec.y * sinf(tetha) + vec.z * cosf(tetha)),
-            };
-        }
-
-        Vec3 transformVertexRot(Vec3 vec, float tetha) {
-            Vec3 ret = vec;
-            ret = transformVertexRotX(ret, M_PI);
-            ret = transformVertexRotY(ret, tetha);
-            // ret = transformVertexRotZ(ret, tetha);
-            return ret;
-            
-        }
-
-        void drawModel(std::span<const Vec3> vertices, std::span<const Face> faces, float angle, Color tint) {
+        void drawModel(std::span<const Vec3> vertices, std::span<const Face> faces, Vec3 rot, Color tint) {
             for (std::size_t i = 0; i < faces.size(); i++) {
-                Vec3 v1 = transformVertexRot(vertices[faces[i].a], angle);
-                Vec3 v2 = transformVertexRot(vertices[faces[i].b], angle);
-                Vec3 v3 = transformVertexRot(vertices[faces[i].c], angle);
+                Vec3 v1 = Mat3x3::rotXYZ(rot) * vertices[faces[i].a];
+                Vec3 v2 = Mat3x3::rotXYZ(rot) * vertices[faces[i].b];
+                Vec3 v3 = Mat3x3::rotXYZ(rot) * vertices[faces[i].c];
                 Vec3 l1 = (v1 - v2);
                 Vec3 l2 = (v1 - v3);
                 Vec3 n = l1.cross(l2);
@@ -248,7 +215,7 @@ int main(int argc, const char** argv) {
         angle += M_PI_4 * delta;
         render.clear({40, 44, 52, 255});
         // render.drawShape(vertices, indexArr, angle, {255, 0, 0, 255});
-        render.drawModel(vertices, faces, angle, {255, 0, 0, 255});
+        render.drawModel(vertices, faces, {M_PI, angle, 0}, {255, 0, 0, 255});
         // render.drawModel(vertices, faces, M_PI);
         SDL::SDL_UpdateWindowSurface(render.inner_window);
     }
