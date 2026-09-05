@@ -7,29 +7,10 @@ namespace SDL {
     #include <SDL3/SDL.h>
 }
 
+#include <rmath.hpp>
+
 namespace Render {
-    typedef struct __Vec3 {
-        float x, y, z;
-
-        struct __Vec3 cross(struct __Vec3 rhs) {
-            return {
-                this->y * rhs.z - this->z * rhs.y,
-                this->z * rhs.x - this->x * rhs.z,
-                this->x * rhs.y - this->y * rhs.x
-            };
-        }
-    } Vec3;
-
-    Vec3 operator - (const Vec3& lhs, const Vec3& rhs) {
-        return {
-            lhs.x - rhs.x,
-            lhs.y - rhs.y,
-            lhs.z - rhs.z,
-        };   
-    }
-    typedef struct {
-        int a, b, c;
-    } Face;
+    using namespace rmath;
 
     static void _drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, SDL::SDL_Color color) {
         int dx = x1 - x0;

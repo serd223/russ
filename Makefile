@@ -2,7 +2,7 @@
 all: bin/main
 
 CPPC=g++
-CPPFLAGS=-std=c++20 -Wall -Wextra -g $(shell pkg-config sdl3 --cflags)
+CPPFLAGS=-std=c++20 -Wall -Wextra -g -I$(shell pwd)/src $(shell pkg-config sdl3 --cflags)
 LIBS=$(shell pkg-config sdl3 --libs)
 
 SRCS=$(wildcard src/*.cpp)
