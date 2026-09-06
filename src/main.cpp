@@ -50,7 +50,7 @@ int main(int argc, const char** argv) {
 
         std::array<iVec2, 3> triangle = {iVec2(600, 200), iVec2(240, 370), iVec2(450, 570)};
         std::array<int, 3> indexes = {0, 1, 2};
-        render.drawTriangleFilled(triangle, indexes, {255, 0, 0, 255});
+        render.drawTriangleFilled(triangle, indexes, {55, 156, 33, 255});
 
         SDL::SDL_UpdateWindowSurface(render.inner_window);
     }

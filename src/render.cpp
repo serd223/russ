@@ -193,7 +193,7 @@ namespace render {
         l01.insert(l01.end(), l12.begin(), l12.end());
         
         for (int i = 0; i < l02.size(); i++) {
-            _drawLine(inner_surface, l02[i].x, l01[i].x, l02[i].y, l01[i].y, {255, 255, 0, 255});
+            _drawLine(inner_surface, l02[i].x, l01[i].x, l02[i].y, l01[i].y, color);
         }
     }
 }
