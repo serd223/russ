@@ -11,6 +11,7 @@
   $ ./bin/main ./obj/teapot.obj
 ```
 
+Press 'Space' to print current frame time and FPS information.
 
 ## Acknowledgments
  - Teapot model: https://github.com/alecjacobson/common-3d-test-models/tree/master

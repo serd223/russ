@@ -29,7 +29,6 @@ namespace render {
             vertices.push_back({x, y, z});
         };
 
-        // Yes I know fscanf bad booho but it works perfectly (verified) for the current scratch .obj loader so shut the fuck up about it
         int a, b, c;
         while (fscanf(f, "f %d %d %d\n", &a, &b, &c) >= 3) {
             Vec3 v1 = vertices[a-1], v2 = vertices[b-1], v3 = vertices[c-1];
@@ -180,12 +179,12 @@ namespace render {
     void Renderer::drawModel(Model& model, Color tint) {
         // for (std::size_t i = model.faces.size() - 1; i > 0; i--) {
         for (std::size_t i = 0; i < model.faces.size(); i++) {
+            Vec3 n  = model.faces[i].normal; // Rotation already applied
+            if (n.z <= 0.0) continue;
+
             Vec3 v1 = Mat3x3::rotXYZ(model.getRot()) * model.vertices[model.faces[i].indices.a];
             Vec3 v2 = Mat3x3::rotXYZ(model.getRot()) * model.vertices[model.faces[i].indices.b];
             Vec3 v3 = Mat3x3::rotXYZ(model.getRot()) * model.vertices[model.faces[i].indices.c];
-            Vec3 n  = model.faces[i].normal;
-
-            if (n.z <= 0.0) continue;
 
             Color finalColor = tint;
             const float nMax = 0.65;

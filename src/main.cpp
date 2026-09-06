@@ -36,6 +36,11 @@ int main(int argc, const char** argv) {
 
         while (SDL::SDL_PollEvent(&event)) {
             if (event.type == SDL::SDL_EVENT_QUIT) goto loop_end;
+            if (event.type == SDL::SDL_EVENT_KEY_UP) {
+                if (event.key.key == SDLK_SPACE) {
+                    printf("Frame Time: %f, FPS: %f\n", delta, 1.0 / delta);
+                }
+            }
         }
         model.setRotY(model.getRot().y + M_PI_4 * delta);
         render.clear({40, 44, 52, 255});
