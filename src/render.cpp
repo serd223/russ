@@ -166,8 +166,13 @@ namespace render {
             v1 = v1 * model.scale + position;
             v2 = v2 * model.scale + position;
             v3 = v3 * model.scale + position;
-            iVec2 vs[3] = {{(int)v1.x, (int)v1.y},{(int)v2.x, (int)v2.y},{(int)v3.x, (int)v3.y}};
-            drawTriangleFilled(vs, tint);
+            drawTriangleFilled((iVec2[]){
+                    {(int)v1.x, (int)v1.y},
+                    {(int)v2.x, (int)v2.y},
+                    {(int)v3.x, (int)v3.y}
+                },
+                tint
+            );
         }
     }
 
@@ -176,12 +181,12 @@ namespace render {
             Vec3 vec1 = vertices[indices[i]];
             Vec3 vec2 = vertices[indices[i + 1]];
             drawLine(
-                        (int)(vec1.x * 50.0f + 200.0f),
-                        (int)(vec2.x * 50.0f + 200.0f),
-                        (int)(vec1.y * 50.0f + 200.0f),
-                        (int)(vec2.y * 50.0f + 200.0f),
-                        color
-                );
+                (int)(vec1.x * 50.0f + 200.0f),
+                (int)(vec2.x * 50.0f + 200.0f),
+                (int)(vec1.y * 50.0f + 200.0f),
+                (int)(vec2.y * 50.0f + 200.0f),
+                color
+            );
         }
     }
 
