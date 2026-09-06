@@ -15,6 +15,9 @@ namespace rmath {
         public:
         float x, y, z;
         Vec3 cross(Vec3 rhs);
+        float squarelen();
+        float len();
+        Vec3 normalize();
     };
 
     Vec3 operator + (const Vec3& lhs, const Vec3& rhs);
@@ -26,6 +29,12 @@ namespace rmath {
     class iVec3 {
         public:
         int a, b, c;
+    };
+
+    class Face {
+        public:
+        iVec3 indices;
+        Vec3 normal;
     };
 
     class Mat3x3 {

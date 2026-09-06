@@ -16,34 +16,30 @@ namespace render {
     typedef SDL::SDL_Color Color;
 
     Model::Model(const char* obj_file_path) {
-            FILE* f = fopen(obj_file_path, "r");
-            if (f == NULL) {
-                printf("[ERROR] Couldn't open file '%s': %s\n", obj_file_path, strerror(errno));
-                throw;
-            }
-
-            printf("Loading object from file '%s'...\n", obj_file_path);
-
-            float x, y, z;
-            while (fscanf(f, "v %f %f %f\n", &x, &y, &z) >= 3) {
-                vertices.push_back({x, y, z});
-            };
-
-            int a, b, c;
-            while (fscanf(f, "f %d %d %d\n", &a, &b, &c) >= 3) {
-                faces.push_back({a, b, c});
-            };
-            if (fscanf(f, "f %d %d %d", &a, &b, &c) >= 3) {
-                faces.push_back({a, b, c});
-            }
-
-            printf("Succesfully loaded %lu vertices and %lu faces from file '%s'.\n", vertices.size(), faces.size(), obj_file_path);
+        FILE* f = fopen(obj_file_path, "r");
+        if (f == NULL) {
+            printf("[ERROR] Couldn't open file '%s': %s\n", obj_file_path, strerror(errno));
+            throw;
         }
 
-    Model::Model(std::vector<Vec3> vertices, std::vector<iVec3> faces) {
-            this->vertices = vertices;
-            this->faces = faces;
-        }
+        printf("Loading object from file '%s'...\n", obj_file_path);
+
+        float x, y, z;
+        while (fscanf(f, "v %f %f %f\n", &x, &y, &z) >= 3) {
+            vertices.push_back({x, y, z});
+        };
+
+        // Yes I know fscanf bad booho but it works perfectly (verified) for the current scratch .obj loader so shut the fuck up about it
+        int a, b, c;
+        while (fscanf(f, "f %d %d %d\n", &a, &b, &c) >= 3) {
+            Vec3 v1 = vertices[a-1], v2 = vertices[b-1], v3 = vertices[c-1];
+            Vec3 l1 = v2 - v1, l2 = v3 - v1;
+            faces.push_back({.indices = {a - 1, b - 1, c - 1}, .normal = l1.cross(l2).normalize()});
+        };
+
+        printf("Succesfully loaded %lu vertices and %lu faces from file '%s'.\n", vertices.size(), faces.size(), obj_file_path);
+    }
+
 
     static void _drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, Color color) {
         int dx = x1 - x0;
@@ -149,15 +145,29 @@ namespace render {
     
     void Renderer::drawModel(Model& model, Color tint) {
         for (std::size_t i = 0; i < model.faces.size(); i++) {
-            Vec3 v1 = model.transform * Mat3x3::rotXYZ(model.rot) * model.vertices[model.faces[i].a];
-            Vec3 v2 = model.transform * Mat3x3::rotXYZ(model.rot) * model.vertices[model.faces[i].b];
-            Vec3 v3 = model.transform * Mat3x3::rotXYZ(model.rot) * model.vertices[model.faces[i].c];
-            Vec3 l1 = (v1 - v2);
-            Vec3 l2 = (v1 - v3);
-            Vec3 n = l1.cross(l2);
+            Vec3 v1 = Mat3x3::rotXYZ(model.rot) * model.vertices[model.faces[i].indices.a];
+            Vec3 v2 = Mat3x3::rotXYZ(model.rot) * model.vertices[model.faces[i].indices.b];
+            Vec3 v3 = Mat3x3::rotXYZ(model.rot) * model.vertices[model.faces[i].indices.c];
+            Vec3 n  = Mat3x3::rotXYZ(model.rot) * model.faces[i].normal;
 
-            if (n.z < 0.0) continue;
-
+            if (n.z <= 0.0) continue;
+            Color finalColor = tint;
+            if (n.y >= 0.0) {
+                if (n.y < 0.5) {
+                    finalColor.r = (finalColor.r * 7) / 8;
+                    finalColor.g = (finalColor.g * 7) / 8;
+                    finalColor.b = (finalColor.b * 7) / 8;
+                } else if (n.y < 0.75) {
+                    finalColor.r = (finalColor.r * 3) / 4;
+                    finalColor.g = (finalColor.g * 3) / 4;
+                    finalColor.b = (finalColor.b * 3) / 4;
+                } else {
+                    finalColor.r = finalColor.r / 2;
+                    finalColor.g = finalColor.g / 2;
+                    finalColor.b = finalColor.b / 2;
+                }
+            }
+            
             // TODO: Have some way outside of this method to specify position
             const Vec3 position = {200, 200, 200};
             // drawLine(v1 * model.scale + position, v2 * model.scale + position, tint);
@@ -171,7 +181,7 @@ namespace render {
                     {(int)v2.x, (int)v2.y},
                     {(int)v3.x, (int)v3.y}
                 },
-                tint
+                finalColor
             );
         }
     }

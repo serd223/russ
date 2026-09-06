@@ -15,12 +15,11 @@ namespace render {
     class Model {
         public:
         std::vector<Vec3> vertices;
-        std::vector<iVec3> faces;
+        std::vector<Face> faces;
         Vec3 rot = {0, 0, 0};
         float scale = 1.0f;
         Mat3x3 transform = Mat3x3::id();
 
-        Model(std::vector<Vec3> vertices, std::vector<iVec3> faces);
         Model(const char* obj_file_path);
 
     };

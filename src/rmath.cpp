@@ -10,6 +10,18 @@ namespace rmath {
         };
     }
 
+    float Vec3::squarelen() {
+        return this->x * this->x + this->y * this->y + this->z * this->z;
+    }
+
+    float Vec3::len() {
+        return sqrtf(this->x * this->x + this->y * this->y + this->z * this->z);
+    }
+
+    Vec3 Vec3::normalize() {
+        return *this * (1.0f / this->len());
+    }
+
     Vec3 operator + (const Vec3& lhs, const Vec3& rhs) {
         return {
             lhs.x + rhs.x,

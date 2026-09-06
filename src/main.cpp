@@ -41,8 +41,8 @@ int main(int argc, const char** argv) {
         render.clear({40, 44, 52, 255});
         render.drawModel(model, {255, 0, 0, 255});
 
-        std::array<iVec2, 3> triangle = {iVec2(600, 200), iVec2(240, 370), iVec2(450, 570)};
-        render.drawTriangleFilled(triangle, {55, 156, 33, 255});
+        // std::array<iVec2, 3> triangle = {iVec2(600, 200), iVec2(240, 370), iVec2(450, 570)};
+        // render.drawTriangleFilled(triangle, {55, 156, 33, 255});
 
         SDL::SDL_UpdateWindowSurface(render.inner_window);
     }
