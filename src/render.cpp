@@ -1,10 +1,11 @@
+#include <algorithm>
 #include <math.h>
 #include <cerrno>
 #include <cstring>
 #include <span>
 #include <stdio.h>
 #include <vector>
-
+#include <iostream>
 
 namespace SDL {
     #include <SDL3/SDL.h>
@@ -45,7 +46,7 @@ namespace render {
             this->faces = faces;
         }
 
-    void _drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, SDL::SDL_Color color) {
+    void _drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, Color color) {
         int dx = x1 - x0;
         int dy = y1 - y0;
         int xi = 1;
@@ -67,7 +68,7 @@ namespace render {
         }
     }
 
-    void _drawLineLow(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, SDL::SDL_Color color) {
+    void _drawLineLow(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, Color color) {
 
         int dx = x1 - x0;
         int dy = y1 - y0;
@@ -90,7 +91,7 @@ namespace render {
         }
     }
 
-    void _drawLine(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, SDL::SDL_Color color) {
+    void _drawLine(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, Color color) {
         if (abs(y1 - y0) < abs(x1 - x0)) {
             if (x0 > x1) {
                 _drawLineLow(surface, x1, x0, y1, y0, color);
@@ -106,6 +107,17 @@ namespace render {
         }
     }
     
+    std::vector<iVec2> _interpolate(iVec2& v0, iVec2& v1) {
+        std::vector<iVec2> out;
+        for (int i = v0.y; i < v1.y; i++) {
+            float o = (float)((i - v0.y) * (v1.x - v0.x)) / (float)(v1.y - v0.y) + v0.x;
+            int ox = static_cast<int>(round(o));
+            iVec2 v{ox, i};
+            out.push_back(v);
+        }
+        return out;
+    }
+
     Renderer::Renderer(const char* title, int w, int h) {
         inner_window = SDL::SDL_CreateWindow(title, w, h, 0);
         if (inner_window == NULL) {
@@ -166,6 +178,22 @@ namespace render {
                         (int)(vec2.y * 50.0f + 200.0f),
                         color
                 );
+        }
+    }
+
+    void Renderer::drawTriangleFilled(std::array<iVec2, 3>& vertex, std::array<int, 3>& index, Color color) {
+        if (vertex[1].y < vertex[0].y) std::swap(vertex[1], vertex[0]);
+        if (vertex[2].y < vertex[0].y) std::swap(vertex[2], vertex[0]);
+        if (vertex[2].y < vertex[1].y) std::swap(vertex[2], vertex[1]); // v2y > v1y > v0y
+
+        std::vector<iVec2> l02 = _interpolate(vertex[0], vertex[2]);
+        std::vector<iVec2> l01 = _interpolate(vertex[0], vertex[1]);
+        std::vector<iVec2> l12 = _interpolate(vertex[1], vertex[2]);
+
+        l01.insert(l01.end(), l12.begin(), l12.end());
+        
+        for (int i = 0; i < l02.size(); i++) {
+            _drawLine(inner_surface, l02[i].x, l01[i].x, l02[i].y, l01[i].y, {255, 255, 0, 255});
         }
     }
 }

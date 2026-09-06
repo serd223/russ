@@ -1,6 +1,16 @@
 #pragma once
 
 namespace rmath {
+    struct Vec2 {
+        public:
+        float x, y;
+    };
+    
+    struct iVec2 {
+        public:
+        int x, y;
+    };
+
     class Vec3 {
         public:
         float x, y, z;

@@ -1,15 +1,18 @@
 .PHONY:
 all: bin/main
 
+.PHONY:
+clean:
+	rm -rf bin/main
+
 CPPC=g++
-CPPFLAGS=-std=c++20 -Wall -Wextra -g -I$(shell pwd)/src $(shell pkg-config sdl3 --cflags)
+CPPFLAGS=-std=c++20 -Wall -Wextra -g -O0 -I$(shell pwd)/src $(shell pkg-config sdl3 --cflags)
 LIBS=$(shell pkg-config sdl3 --libs)
 
 SRCS=$(wildcard src/*.cpp)
 
 bin/main: $(SRCS)
 	$(CPPC) $(SRCS) $(CPPFLAGS) -o bin/main $(LIBS)
-
 
 teapot:
 	mkdir -p obj

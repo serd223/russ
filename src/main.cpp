@@ -47,6 +47,11 @@ int main(int argc, const char** argv) {
         model.rot.y += M_PI_4 * delta;
         render.clear({40, 44, 52, 255});
         render.drawModel(model, {255, 0, 0, 255});
+
+        std::array<iVec2, 3> triangle = {iVec2(600, 200), iVec2(240, 370), iVec2(450, 570)};
+        std::array<int, 3> indexes = {0, 1, 2};
+        render.drawTriangleFilled(triangle, indexes, {255, 0, 0, 255});
+
         SDL::SDL_UpdateWindowSurface(render.inner_window);
     }
     loop_end:
