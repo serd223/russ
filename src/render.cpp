@@ -178,6 +178,7 @@ namespace render {
     }
     
     void Renderer::drawModel(Model& model, Color tint) {
+        // for (std::size_t i = model.faces.size() - 1; i > 0; i--) {
         for (std::size_t i = 0; i < model.faces.size(); i++) {
             Vec3 v1 = Mat3x3::rotXYZ(model.getRot()) * model.vertices[model.faces[i].indices.a];
             Vec3 v2 = Mat3x3::rotXYZ(model.getRot()) * model.vertices[model.faces[i].indices.b];
@@ -185,21 +186,20 @@ namespace render {
             Vec3 n  = model.faces[i].normal;
 
             if (n.z <= 0.0) continue;
+
             Color finalColor = tint;
+            const float nMax = 0.65;
             if (n.y >= 0.0) {
-                if (n.y < 0.5) {
-                    finalColor.r = (finalColor.r * 7) / 8;
-                    finalColor.g = (finalColor.g * 7) / 8;
-                    finalColor.b = (finalColor.b * 7) / 8;
-                } else if (n.y < 0.75) {
-                    finalColor.r = (finalColor.r * 3) / 4;
-                    finalColor.g = (finalColor.g * 3) / 4;
-                    finalColor.b = (finalColor.b * 3) / 4;
-                } else {
-                    finalColor.r = finalColor.r / 2;
-                    finalColor.g = finalColor.g / 2;
-                    finalColor.b = finalColor.b / 2;
-                }
+                float t = n.y > nMax ? nMax : n.y;
+                finalColor.r = (int)((float)finalColor.r * (1.0 - t));
+                finalColor.g = (int)((float)finalColor.g * (1.0 - t));
+                finalColor.b = (int)((float)finalColor.b * (1.0 - t));
+            }
+            if (n.x >= 0.0) {
+                float t = n.x > nMax ? nMax : n.x;
+                finalColor.r = (int)((float)finalColor.r * (1.0 - t));
+                finalColor.g = (int)((float)finalColor.g * (1.0 - t));
+                finalColor.b = (int)((float)finalColor.b * (1.0 - t));
             }
             
             // TODO: Have some way outside of this method to specify position
