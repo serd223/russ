@@ -72,7 +72,6 @@ namespace rmath {
         };
     }
 
-
     Mat3x3 Mat3x3::rotX(float angle) {
         return {
             .r1 = {1, 0          , 0           },
@@ -80,6 +79,7 @@ namespace rmath {
             .r3 = {0, sinf(angle), cosf(angle) },
        };
     }
+
     Mat3x3 Mat3x3::rotY(float angle) {
         return {
             .r1 = {cosf(angle) , 0, sinf(angle)},
@@ -87,6 +87,7 @@ namespace rmath {
             .r3 = {-sinf(angle), 0, cosf(angle)},
        };
     }
+
     Mat3x3 Mat3x3::rotZ(float angle) {
         return {
             .r1 = {cosf(angle), -sinf(angle), 0},
@@ -94,6 +95,7 @@ namespace rmath {
             .r3 = {0          , 0           , 1},
        };
     }
+
     Mat3x3 Mat3x3::rotXYZ(Vec3 rot) {
         return Mat3x3::rotX(rot.x) * Mat3x3::rotY(rot.y) * Mat3x3::rotZ(rot.z);
     }
