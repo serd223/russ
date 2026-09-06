@@ -177,19 +177,24 @@ namespace render {
     }
     
     void Renderer::drawModel(Model& model, Color tint) {
+        Mat3x3 rot = Mat3x3::rotXYZ(model.getRot());
 
-        // Extremely scuffed way of sorting faces, we basically calculate rotation for each vertex multiple times
-        // And we don't even reuse those calculations in the draw loop below this
+        static std::vector<Vec3> vertices; // leak
+        vertices.reserve(model.vertices.size());
+        for (size_t i = 0; i < model.vertices.size(); i++) {
+            vertices[i] = rot * model.vertices[i];
+        }
+
         std::sort(model.faces.begin(), model.faces.end(), [model](const Face& a, const Face& b) {
             const Vec3 offset = {100, 100, 100};
-            Vec3 v1a = Mat3x3::rotXYZ(model.getRot()) * model.vertices[a.indices.a] + offset;
-            Vec3 v2a = Mat3x3::rotXYZ(model.getRot()) * model.vertices[a.indices.b] + offset;
-            Vec3 v3a = Mat3x3::rotXYZ(model.getRot()) * model.vertices[a.indices.c] + offset;
-            float la = ((v1a + v2a + v3a) * (1.0f/3.0f)).squarelen();
-            Vec3 v1b = Mat3x3::rotXYZ(model.getRot()) * model.vertices[b.indices.a] + offset;
-            Vec3 v2b = Mat3x3::rotXYZ(model.getRot()) * model.vertices[b.indices.b] + offset;
-            Vec3 v3b = Mat3x3::rotXYZ(model.getRot()) * model.vertices[b.indices.c] + offset;
-            float lb = ((v1b + v2b + v3b) * (1.0f/3.0f)).squarelen();
+            Vec3 v1a = vertices[a.indices.a];
+            Vec3 v2a = vertices[a.indices.b];
+            Vec3 v3a = vertices[a.indices.c];
+            float la = ((v1a + v2a + v3a) * (1.0f/3.0f) + offset).squarelen();
+            Vec3 v1b = vertices[b.indices.a];
+            Vec3 v2b = vertices[b.indices.b];
+            Vec3 v3b = vertices[b.indices.c];
+            float lb = ((v1b + v2b + v3b) * (1.0f/3.0f) + offset).squarelen();
             return la < lb;
         });
 
@@ -198,9 +203,9 @@ namespace render {
             Vec3 n  = model.faces[i].normal; // Rotation already applied
             if (n.z <= 0.0) continue;
 
-            Vec3 v1 = Mat3x3::rotXYZ(model.getRot()) * model.vertices[model.faces[i].indices.a];
-            Vec3 v2 = Mat3x3::rotXYZ(model.getRot()) * model.vertices[model.faces[i].indices.b];
-            Vec3 v3 = Mat3x3::rotXYZ(model.getRot()) * model.vertices[model.faces[i].indices.c];
+            Vec3 v1 = vertices[model.faces[i].indices.a];
+            Vec3 v2 = vertices[model.faces[i].indices.b];
+            Vec3 v3 = vertices[model.faces[i].indices.c];
 
             Color finalColor = tint;
             const float nMax = 0.65;
