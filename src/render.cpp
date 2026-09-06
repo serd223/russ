@@ -160,9 +160,14 @@ namespace render {
 
             // TODO: Have some way outside of this method to specify position
             const Vec3 position = {200, 200, 200};
-            drawLine(v1 * model.scale + position, v2 * model.scale + position, tint);
-            drawLine(v2 * model.scale + position, v3 * model.scale + position, tint);
-            drawLine(v3 * model.scale + position, v1 * model.scale + position, tint);
+            // drawLine(v1 * model.scale + position, v2 * model.scale + position, tint);
+            // drawLine(v2 * model.scale + position, v3 * model.scale + position, tint);
+            // drawLine(v3 * model.scale + position, v1 * model.scale + position, tint);
+            v1 = v1 * model.scale + position;
+            v2 = v2 * model.scale + position;
+            v3 = v3 * model.scale + position;
+            iVec2 vs[3] = {{(int)v1.x, (int)v1.y},{(int)v2.x, (int)v2.y},{(int)v3.x, (int)v3.y}};
+            drawTriangleFilled(vs, tint);
         }
     }
 
@@ -180,14 +185,16 @@ namespace render {
         }
     }
 
-    void Renderer::drawTriangleFilled(std::array<iVec2, 3>& vertex, Color color) {
-        if (vertex[1].y < vertex[0].y) std::swap(vertex[1], vertex[0]);
-        if (vertex[2].y < vertex[0].y) std::swap(vertex[2], vertex[0]);
-        if (vertex[2].y < vertex[1].y) std::swap(vertex[2], vertex[1]); // v2y > v1y > v0y
+    void Renderer::drawTriangleFilled(std::span<const iVec2, 3> vertex, Color color) {
+        // Accept vertices as span view and copy them to internal buffer
+        iVec2 vertices[3] = {vertex[0], vertex[1], vertex[2]};
+        if (vertices[1].y < vertices[0].y) std::swap(vertices[1], vertices[0]);
+        if (vertices[2].y < vertices[0].y) std::swap(vertices[2], vertices[0]);
+        if (vertices[2].y < vertices[1].y) std::swap(vertices[2], vertices[1]); // v2y > v1y > v0y
 
-        std::vector<iVec2> l02 = _interpolate(vertex[0], vertex[2]);
-        std::vector<iVec2> l01 = _interpolate(vertex[0], vertex[1]);
-        std::vector<iVec2> l12 = _interpolate(vertex[1], vertex[2]);
+        std::vector<iVec2> l02 = _interpolate(vertices[0], vertices[2]);
+        std::vector<iVec2> l01 = _interpolate(vertices[0], vertices[1]);
+        std::vector<iVec2> l12 = _interpolate(vertices[1], vertices[2]);
 
         l01.insert(l01.end(), l12.begin(), l12.end());
         
