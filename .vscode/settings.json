@@ -1,9 +1,0 @@
-{
-    "makefile.launchConfigurations": [
-        {
-            "cwd": "/home/kiziltunc/Documents/Programming/russ/bin",
-            "binaryPath": "/home/kiziltunc/Documents/Programming/russ/bin/main",
-            "binaryArgs": ["../obj/teapot.obj"]
-        }
-    ]
-}
