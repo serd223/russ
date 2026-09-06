@@ -176,7 +176,7 @@ namespace render {
         drawLine((int)v1.x, (int)v2.x, (int)v1.y, (int)v2.y, color);
     }
     
-    void Renderer::drawModel(Model& model, Color tint) {
+    void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
         Mat3x3 rot = Mat3x3::rotXYZ(model.getRot());
 
         static std::vector<Vec3> vertices; // leak
@@ -222,8 +222,6 @@ namespace render {
                 finalColor.b = (int)((float)finalColor.b * (1.0 - t));
             }
             
-            // TODO: Have some way outside of this method to specify position
-            const Vec3 position = {200, 200, 200};
             // drawLine(v1 * model.scale + position, v2 * model.scale + position, tint);
             // drawLine(v2 * model.scale + position, v3 * model.scale + position, tint);
             // drawLine(v3 * model.scale + position, v1 * model.scale + position, tint);

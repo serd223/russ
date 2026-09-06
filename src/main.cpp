@@ -18,11 +18,16 @@ int main(int argc, const char** argv) {
     const char* obj_file_path = argv[1];
 
     Model model(obj_file_path);
-    model.scale = 50.0f;
+    model.scale = 70.0f;
     model.setRot({M_PI, 0, 0});
 
     SDL::SDL_Init(SDL_INIT_VIDEO);
     Renderer render = Renderer("russ - dev", 800, 600);
+
+    bool isMouseLeftDown = false;
+    Vec2 mouseRel;
+    Vec3 position = {400, 300, 0};
+    iVec2 dir = {0, 0};
 
     SDL::Uint32 now = SDL::SDL_GetPerformanceCounter();
     SDL::Uint32 last;
@@ -33,25 +38,69 @@ int main(int argc, const char** argv) {
         last = now;
         now = SDL::SDL_GetPerformanceCounter();
         delta = (double)(now - last) / (double)(SDL::SDL_GetPerformanceFrequency());
+        (void)delta;
 
+        mouseRel.x = 0.0f, mouseRel.y = 0.0f;
         while (SDL::SDL_PollEvent(&event)) {
             if (event.type == SDL::SDL_EVENT_QUIT) goto loop_end;
-            if (event.type == SDL::SDL_EVENT_KEY_UP) {
+            else if (event.type == SDL::SDL_EVENT_KEY_UP) {
                 if (event.key.key == SDLK_SPACE) {
                     printf("Frame Time: %f, FPS: %f\n", delta, 1.0 / delta);
+                } else if (event.key.key == SDLK_LEFT) {
+                    dir.x = 0;
+                } else if (event.key.key == SDLK_RIGHT) {
+                    dir.x = 0;
+                } else if (event.key.key == SDLK_UP) {
+                    dir.y = 0;
+                } else if (event.key.key == SDLK_DOWN) {
+                    dir.y = 0;
                 }
+            } else if (event.type == SDL::SDL_EVENT_KEY_DOWN) {
+                if (event.key.key == SDLK_LEFT) {
+                    dir.x = -1;
+                } else if (event.key.key == SDLK_RIGHT) {
+                    dir.x = 1;
+                } else if (event.key.key == SDLK_UP) {
+                    dir.y = -1;
+                } else if (event.key.key == SDLK_DOWN) {
+                    dir.y = 1;
+                }
+            } else if (event.type == SDL::SDL_EVENT_MOUSE_BUTTON_DOWN) {
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    isMouseLeftDown = true;
+                }
+            } else if (event.type == SDL::SDL_EVENT_MOUSE_BUTTON_UP) {
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    isMouseLeftDown = false;
+                }
+            } else if (event.type == SDL::SDL_EVENT_MOUSE_MOTION) {
+                mouseRel.x = event.motion.xrel;
+                mouseRel.y = event.motion.yrel;
+            } else if (event.type == SDL::SDL_EVENT_MOUSE_WHEEL) {
+                model.scale += event.wheel.y * delta * 100.0f;
             }
+
+        }
+        position.x += 100.0f * delta * (float)dir.x;
+        position.y += 100.0f * delta * (float)dir.y;
+
+        if (isMouseLeftDown) {
+            model.setRot({
+                model.getRot().x - (float)(M_PI * delta) * mouseRel.y,
+                model.getRot().y - (float)(M_PI * delta) * mouseRel.x,
+                model.getRot().z,
+            });
         }
         // model.setRot({
-        //     model.getRot().x + (float)(M_PI_4 * delta),
-        //     model.getRot().y + (float)(M_PI_4 * delta),
+        //     model.getRot().x, //  + (float)(M_PI_4 * delta),
+        //     model.getRot().y, //  + (float)(M_PI_4 * delta),
         //     model.getRot().z + (float)(M_PI_4 * delta),
         // });
-        model.setRotY(
-            model.getRot().y + (float)(M_PI_4 * delta)
-        );
+        // model.setRotY(
+        //     model.getRot().y + (float)(M_PI_4 * delta)
+        // );
         render.clear({40, 44, 52, 255});
-        render.drawModel(model, {255, 0, 0, 255});
+        render.drawModel(model, position, {255, 0, 0, 255});
 
         // std::array<iVec2, 3> triangle = {iVec2(600, 200), iVec2(240, 370), iVec2(450, 570)};
         // render.drawTriangleFilled(triangle, {55, 156, 33, 255});
