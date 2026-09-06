@@ -42,7 +42,14 @@ int main(int argc, const char** argv) {
                 }
             }
         }
-        model.setRotY(model.getRot().y + M_PI_4 * delta);
+        // model.setRot({
+        //     model.getRot().x + (float)(M_PI_4 * delta),
+        //     model.getRot().y + (float)(M_PI_4 * delta),
+        //     model.getRot().z + (float)(M_PI_4 * delta),
+        // });
+        model.setRotY(
+            model.getRot().y + (float)(M_PI_4 * delta)
+        );
         render.clear({40, 44, 52, 255});
         render.drawModel(model, {255, 0, 0, 255});
 

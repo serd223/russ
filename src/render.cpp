@@ -49,7 +49,7 @@ namespace render {
         }
     }
 
-    Vec3 Model::getRot() {
+    Vec3 Model::getRot() const {
         return this->rot;
     }
 
@@ -177,6 +177,22 @@ namespace render {
     }
     
     void Renderer::drawModel(Model& model, Color tint) {
+
+        // Extremely scuffed way of sorting faces, we basically calculate rotation for each vertex multiple times
+        // And we don't even reuse those calculations in the draw loop below this
+        std::sort(model.faces.begin(), model.faces.end(), [model](const Face& a, const Face& b) {
+            const Vec3 offset = {100, 100, 100};
+            Vec3 v1a = Mat3x3::rotXYZ(model.getRot()) * model.vertices[a.indices.a] + offset;
+            Vec3 v2a = Mat3x3::rotXYZ(model.getRot()) * model.vertices[a.indices.b] + offset;
+            Vec3 v3a = Mat3x3::rotXYZ(model.getRot()) * model.vertices[a.indices.c] + offset;
+            float la = ((v1a + v2a + v3a) * (1.0f/3.0f)).squarelen();
+            Vec3 v1b = Mat3x3::rotXYZ(model.getRot()) * model.vertices[b.indices.a] + offset;
+            Vec3 v2b = Mat3x3::rotXYZ(model.getRot()) * model.vertices[b.indices.b] + offset;
+            Vec3 v3b = Mat3x3::rotXYZ(model.getRot()) * model.vertices[b.indices.c] + offset;
+            float lb = ((v1b + v2b + v3b) * (1.0f/3.0f)).squarelen();
+            return la < lb;
+        });
+
         // for (std::size_t i = model.faces.size() - 1; i > 0; i--) {
         for (std::size_t i = 0; i < model.faces.size(); i++) {
             Vec3 n  = model.faces[i].normal; // Rotation already applied

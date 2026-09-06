@@ -19,7 +19,7 @@ namespace render {
         float scale = 1.0f;
 
         Model(const char* obj_file_path);
-        Vec3 getRot();
+        Vec3 getRot() const;
         void setRot(Vec3 rot);
         void setRotX(float angle);
         void setRotY(float angle);
