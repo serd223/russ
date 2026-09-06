@@ -16,12 +16,19 @@ namespace render {
         public:
         std::vector<Vec3> vertices;
         std::vector<Face> faces;
-        Vec3 rot = {0, 0, 0};
         float scale = 1.0f;
-        Mat3x3 transform = Mat3x3::id();
 
         Model(const char* obj_file_path);
+        Vec3 getRot();
+        void setRot(Vec3 rot);
+        void setRotX(float angle);
+        void setRotY(float angle);
+        void setRotZ(float angle);
 
+        private:
+        void recalculateNormals();
+        Vec3 rot = {0, 0, 0};
+        Mat3x3 transform = Mat3x3::id();
     };
 
     class Renderer {

@@ -19,7 +19,7 @@ int main(int argc, const char** argv) {
 
     Model model(obj_file_path);
     model.scale = 50.0f;
-    model.rot = {M_PI, 0, 0};
+    model.setRot({M_PI, 0, 0});
 
     SDL::SDL_Init(SDL_INIT_VIDEO);
     Renderer render = Renderer("russ - dev", 800, 600);
@@ -37,7 +37,7 @@ int main(int argc, const char** argv) {
         while (SDL::SDL_PollEvent(&event)) {
             if (event.type == SDL::SDL_EVENT_QUIT) goto loop_end;
         }
-        model.rot.y += M_PI_4 * delta;
+        model.setRotY(model.getRot().y + M_PI_4 * delta);
         render.clear({40, 44, 52, 255});
         render.drawModel(model, {255, 0, 0, 255});
 

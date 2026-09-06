@@ -40,6 +40,40 @@ namespace render {
         printf("Succesfully loaded %lu vertices and %lu faces from file '%s'.\n", vertices.size(), faces.size(), obj_file_path);
     }
 
+    void Model::recalculateNormals() {
+        for (size_t i = 0; i < faces.size(); i++) {
+            Vec3 v1 = vertices[faces[i].indices.a];
+            Vec3 v2 = vertices[faces[i].indices.b];
+            Vec3 v3 = vertices[faces[i].indices.c];
+            Vec3 l1 = v2 - v1, l2 = v3 - v1;
+            faces[i].normal = Mat3x3::rotXYZ(rot) * l1.cross(l2).normalize();
+        }
+    }
+
+    Vec3 Model::getRot() {
+        return this->rot;
+    }
+
+    void Model::setRot(Vec3 rot) {
+        this->rot = rot;
+        recalculateNormals();
+    }
+
+    void Model::setRotX(float angle) {
+        this->rot.x = angle;
+        recalculateNormals();
+    }
+
+    void Model::setRotY(float angle) {
+        this->rot.y = angle;
+        recalculateNormals();
+    }
+
+    void Model::setRotZ(float angle) {
+        this->rot.z = angle;
+        recalculateNormals();
+    }
+
 
     static void _drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, Color color) {
         int dx = x1 - x0;
@@ -145,10 +179,10 @@ namespace render {
     
     void Renderer::drawModel(Model& model, Color tint) {
         for (std::size_t i = 0; i < model.faces.size(); i++) {
-            Vec3 v1 = Mat3x3::rotXYZ(model.rot) * model.vertices[model.faces[i].indices.a];
-            Vec3 v2 = Mat3x3::rotXYZ(model.rot) * model.vertices[model.faces[i].indices.b];
-            Vec3 v3 = Mat3x3::rotXYZ(model.rot) * model.vertices[model.faces[i].indices.c];
-            Vec3 n  = Mat3x3::rotXYZ(model.rot) * model.faces[i].normal;
+            Vec3 v1 = Mat3x3::rotXYZ(model.getRot()) * model.vertices[model.faces[i].indices.a];
+            Vec3 v2 = Mat3x3::rotXYZ(model.getRot()) * model.vertices[model.faces[i].indices.b];
+            Vec3 v3 = Mat3x3::rotXYZ(model.getRot()) * model.vertices[model.faces[i].indices.c];
+            Vec3 n  = model.faces[i].normal;
 
             if (n.z <= 0.0) continue;
             Color finalColor = tint;
