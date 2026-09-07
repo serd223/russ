@@ -1,18 +1,17 @@
 #pragma once
 
 /*
-    Camera and Renderer
-    TODO : Refactor camera into a different file.
+    Main Renderer Interface
+    - Handles SDL window creation and manages drawable surface
 */
 
-#include <vector>
 #include <rmath.hpp>
 #include <span>
 namespace SDL {
     #include <SDL3/SDL.h>
 }
-#include "model.hpp"
-#include "camera.hpp"
+#include <model.hpp>
+#include <camera.hpp>
 
 typedef SDL::SDL_Color Color;
 
@@ -20,7 +19,7 @@ class Renderer {
     public:
     SDL::SDL_Window* inner_window;
     SDL::SDL_Surface* inner_surface;
-    Camera cam;
+    Camera cam = Camera(Vec3(0, 0, 0));
 
     Renderer(const char* title, int w, int h);
     ~Renderer();

@@ -8,8 +8,8 @@ namespace SDL {
     #include <SDL3/SDL.h>
 }
 
-#include "model.hpp"
-#include "render.hpp"
+#include <model.hpp>
+#include <render.hpp>
 
 typedef SDL::SDL_Color Color;
 
@@ -119,34 +119,40 @@ void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
     Mat3x3 rot = Mat3x3::rotXYZ(model.rot());
 
     static std::vector<Vec3> vertices; // leak
-    vertices.reserve(model.vertices.size());
+    vertices.resize(model.vertices.size());
     for (size_t i = 0; i < model.vertices.size(); i++) {
         vertices[i] = rot * model.vertices[i];
     }
-
-    std::sort(model.faces.begin(), model.faces.end(), [model](const Face& a, const Face& b) {
+    std::sort(model.faces.begin(), model.faces.end(), [this, model](const Face& a, const Face& b) {
+        // Assuming the camera is at position (0, 0, 0), we first offset the vertices by a random amount away from the camera
+        // to make sure they are not behind the camera (100 is completely arbitrary here).
+        // Next we calcualte the distance between the face and (0, 0, 0) and sort the faces by that distance.
         const Vec3 offset = {100, 100, 100};
         Vec3 v1a = vertices[a.indices.a];
         Vec3 v2a = vertices[a.indices.b];
         Vec3 v3a = vertices[a.indices.c];
-        float la = ((v1a + v2a + v3a) * (1.0f/3.0f) + offset).squarelen();
+        float la = ((v1a + v2a + v3a) * (1.0f/3.0f) + offset) * cam.front();
         Vec3 v1b = vertices[b.indices.a];
         Vec3 v2b = vertices[b.indices.b];
         Vec3 v3b = vertices[b.indices.c];
-        float lb = ((v1b + v2b + v3b) * (1.0f/3.0f) + offset).squarelen();
-        return la < lb;
+        float lb = ((v1b + v2b + v3b) * (1.0f/3.0f) + offset) * cam.front();
+        return la > lb;
     });
 
     // for (std::size_t i = model.faces.size() - 1; i > 0; i--) {
     for (std::size_t i = 0; i < model.faces.size(); i++) {
         Vec3 n  = model.faces[i].normal; // Rotation already applied
-        if (n.z <= 0.0) continue;
+
+        // n . front = |n|.|front|.cos(a), the sign of cos(a) tells us whether the
+        // two vectors are pointing in the same direction
+        if ((n * cam.front()) >= 0.0) continue;
 
         Vec3 v1 = vertices[model.faces[i].indices.a];
         Vec3 v2 = vertices[model.faces[i].indices.b];
         Vec3 v3 = vertices[model.faces[i].indices.c];
 
         Color finalColor = tint;
+        // Fake lighting
         const float nMax = 0.65;
         if (n.y >= 0.0) {
             float t = n.y > nMax ? nMax : n.y;
@@ -160,13 +166,20 @@ void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
             finalColor.g = (int)((float)finalColor.g * (1.0 - t));
             finalColor.b = (int)((float)finalColor.b * (1.0 - t));
         }
-        
-        // drawLine(v1 * model.scale + position, v2 * model.scale + position, tint);
-        // drawLine(v2 * model.scale + position, v3 * model.scale + position, tint);
-        // drawLine(v3 * model.scale + position, v1 * model.scale + position, tint);
+
+        // Scale and offset model to world position
+        // TODO: Position should a member of some class instead of a parameter to this method        
         v1 = v1 * model.scale + position;
         v2 = v2 * model.scale + position;
         v3 = v3 * model.scale + position;
+
+        // The 'screen' can be imagined as the span(up, right).
+        // We basically want to find the 2d projections of our vertices on this span.
+        // By using the formula proj_u(v) = ((u.v)/(|u|^2)).u, we can find the exact projection of our vertices on the span.
+        // However, this results in more 3D vectors, what we actually want is 2D positions on span(up, right).
+        // Thus, we use length of these projections as 2D coordinates.
+        // That simplifies down to u.v/|u| = v.cos(a) where a is the angle between u and v (up/right and vertex).
+        // We can project onto up for the y 2D coordinate, and right for the x 2D coordinate.
         float v1y = ((v1 * cam.up()) / cam.up().len());
         float v1x = ((v1 * cam.right()) / cam.right().len());
         float v2y = ((v2 * cam.up()) / cam.up().len());

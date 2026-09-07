@@ -4,7 +4,6 @@
     Structs like Vectors and functions that are related to them.
 */
 
-
 struct Vec2 {
     public:
     float x, y;
@@ -34,12 +33,6 @@ Vec3 operator * (const float& lhs, const Vec3& rhs);
 class iVec3 {
     public:
     int a, b, c;
-};
-
-class Face {
-    public:
-    iVec3 indices;
-    Vec3 normal;
 };
 
 class Mat3x3 {

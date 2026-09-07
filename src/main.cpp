@@ -1,9 +1,8 @@
-#include <cerrno>
-#include <cstring>
+#include <string.h>
 #include <math.h>
 #include <stdio.h>
-#include "rmath.hpp"
-#include "render.hpp" // Includes camera.hpp and model.hpp
+#include <rmath.hpp>
+#include <render.hpp> // Includes camera.hpp and model.hpp
 
 int main(int argc, const char** argv) {
     if (argc < 2) {
@@ -17,13 +16,17 @@ int main(int argc, const char** argv) {
         const char* obj_file_path = argv[i];
         Model model(obj_file_path);
         model.scale = 70.0f;
-        model.rot({M_PI, 0, 0});
+
+        // Pre-rotate vertices around the X axis to fix upside down models
+        Mat3x3 rotation = Mat3x3::rotXYZ({M_PI, 0, 0});
+        for (auto& v : model.vertices) {
+            v = rotation * v;
+        }
         models.push_back(model);
     }
 
     SDL::SDL_Init(SDL_INIT_VIDEO);
     Renderer render = Renderer("russ - dev", 800, 600);
-    render.cam.rot(Vec3(0,0,0));
 
     bool isMouseLeftDown = false;
     Vec2 mouseRel;
@@ -46,7 +49,7 @@ int main(int argc, const char** argv) {
             if (event.type == SDL::SDL_EVENT_QUIT) goto loop_end;
             else if (event.type == SDL::SDL_EVENT_KEY_UP) {
                 if (event.key.key == SDLK_SPACE) {
-                    printf("Frame Time: %f, FPS: %f\n", delta, 1.0 / delta);
+                    printf("Frame Time: %.3fms, FPS: %.3f\n", delta * 1000.0, 1.0 / delta);
                 } else if (event.key.key == SDLK_LEFT) {
                     dir.x = 0;
                 } else if (event.key.key == SDLK_RIGHT) {
@@ -84,8 +87,11 @@ int main(int argc, const char** argv) {
             }
 
         }
-        position.x += 100.0f * delta * (float)dir.x;
-        position.y += 100.0f * delta * (float)dir.y;
+        render.cam.rot(Vec3(
+            render.cam.rot().x + M_PI_2 * delta * (float)dir.x,
+            render.cam.rot().y + M_PI_2 * delta * (float)dir.y,
+            render.cam.rot().z
+        ));
 
         if (isMouseLeftDown) {
             for (auto& model : models) {
@@ -95,14 +101,11 @@ int main(int argc, const char** argv) {
                     model.rot().z,
                 });
             }
-        } else {
-
         }
 
         render.clear({40, 44, 52, 255});
         for (size_t i = 0; i < models.size(); i++) {
-            Vec3 offset = {(float)i * 100, (float)i * 100, 0};
-            render.drawModel(models[i], position + offset, {255, 0, 0, 255});
+            render.drawModel(models[i], position + Vec3(i*100, i*100, 0), {255, 0, 0, 255});
         }
 
         SDL::SDL_UpdateWindowSurface(render.inner_window);

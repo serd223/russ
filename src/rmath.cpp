@@ -1,7 +1,6 @@
 #include <math.h>
 
-#include "rmath.hpp"
-
+#include <rmath.hpp>
 
 Vec3 Vec3::cross(Vec3 rhs) {
     return {

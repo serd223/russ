@@ -1,11 +1,11 @@
-#include <cstdio>
-#include <cerrno>
-#include <cstring>
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
 #include <stdio.h>
 
 #include <SDL3/SDL.h>
 
-#include "model.hpp"
+#include <model.hpp>
 
 Model::Model(const char* obj_file_path) {
     FILE* f = fopen(obj_file_path, "r");

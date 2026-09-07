@@ -5,8 +5,13 @@
 */
 
 #include <vector>
-#include "rmath.hpp"
-#include "rmath.hpp"
+#include <rmath.hpp>
+
+class Face {
+    public:
+    iVec3 indices;
+    Vec3 normal;
+};
 
 class Model {
     public:
@@ -16,9 +21,13 @@ class Model {
 
     Model(const char* obj_file_path);
     Vec3 rot() const;
+    /// recalculates all normals
     void rot(Vec3 rot);
+    /// reacalculates all normals
     void rotX(float angle);
+    /// reacalculates all normals
     void rotY(float angle);
+    /// reacalculates all normals
     void rotZ(float angle);
 
     private:

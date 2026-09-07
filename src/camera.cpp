@@ -1,5 +1,9 @@
-#include "camera.hpp"
-#include "rmath.hpp"
+#include <camera.hpp>
+#include <rmath.hpp>
+
+Camera::Camera(Vec3 rot) {
+    this->rot(rot);
+}
 
 Vec3 Camera::rot() const {
     return m_rot;
@@ -14,7 +18,6 @@ void Camera::rot(Vec3 newRot) {
 
 Vec3 Camera::front() const {
     return m_front;
-    
 }
 
 Vec3 Camera::up() const {
