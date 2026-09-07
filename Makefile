@@ -17,3 +17,8 @@ bin/main: $(SRCS)
 teapot:
 	mkdir -p obj
 	curl https://raw.githubusercontent.com/alecjacobson/common-3d-test-models/refs/heads/master/data/teapot.obj > ./obj/teapot.obj
+
+car:
+	mkdir -p obj
+	curl https://raw.githubusercontent.com/alecjacobson/common-3d-test-models/refs/heads/master/data/beetle-alt.obj > ./obj/car.obj
+	

@@ -15,11 +15,15 @@ int main(int argc, const char** argv) {
         return 1;
     }
 
-    const char* obj_file_path = argv[1];
-
-    Model model(obj_file_path);
-    model.scale = 70.0f;
-    model.setRot({M_PI, 0, 0});
+    // Load models
+    std::vector<Model> models;
+    for (int i = 1; i < argc; i++) {
+        const char* obj_file_path = argv[i];
+        Model model(obj_file_path);
+        model.scale = 70.0f;
+        model.setRot({M_PI, 0, 0});
+        models.push_back(model);
+    }
 
     SDL::SDL_Init(SDL_INIT_VIDEO);
     Renderer render = Renderer("russ - dev", 800, 600);
@@ -77,7 +81,9 @@ int main(int argc, const char** argv) {
                 mouseRel.x = event.motion.xrel;
                 mouseRel.y = event.motion.yrel;
             } else if (event.type == SDL::SDL_EVENT_MOUSE_WHEEL) {
-                model.scale += event.wheel.y * delta * 100.0f;
+                for (auto& model : models) {
+                    model.scale += event.wheel.y * delta * 100.0f;
+                }
             }
 
         }
@@ -85,11 +91,13 @@ int main(int argc, const char** argv) {
         position.y += 100.0f * delta * (float)dir.y;
 
         if (isMouseLeftDown) {
-            model.setRot({
-                model.getRot().x - (float)(M_PI * delta) * mouseRel.y,
-                model.getRot().y - (float)(M_PI * delta) * mouseRel.x,
-                model.getRot().z,
-            });
+            for (auto& model : models) {
+                model.setRot({
+                    model.getRot().x - (float)(M_PI * delta) * mouseRel.y,
+                    model.getRot().y - (float)(M_PI * delta) * mouseRel.x,
+                    model.getRot().z,
+                });
+            }
         }
         // model.setRot({
         //     model.getRot().x, //  + (float)(M_PI_4 * delta),
@@ -100,8 +108,9 @@ int main(int argc, const char** argv) {
         //     model.getRot().y + (float)(M_PI_4 * delta)
         // );
         render.clear({40, 44, 52, 255});
-        render.drawModel(model, position, {255, 0, 0, 255});
-
+        for (auto& model : models) {
+            render.drawModel(model, position, {255, 0, 0, 255});
+        }
         // std::array<iVec2, 3> triangle = {iVec2(600, 200), iVec2(240, 370), iVec2(450, 570)};
         // render.drawTriangleFilled(triangle, {55, 156, 33, 255});
 
