@@ -38,6 +38,14 @@ namespace rmath {
         };   
     }
 
+    Vec3 operator / (const Vec3& lhs, const float& rhs) {
+        return {
+            lhs.x / rhs,
+            lhs.y / rhs,
+            lhs.z / rhs,
+        };
+    }
+
     Vec3 operator * (const Vec3& lhs, const Vec3& rhs) {
         return {
             lhs.x * rhs.x,

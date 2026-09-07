@@ -45,34 +45,58 @@ namespace render {
             Vec3 v2 = vertices[faces[i].indices.b];
             Vec3 v3 = vertices[faces[i].indices.c];
             Vec3 l1 = v2 - v1, l2 = v3 - v1;
-            faces[i].normal = Mat3x3::rotXYZ(rot) * l1.cross(l2).normalize();
+            faces[i].normal = Mat3x3::rotXYZ(m_rot) * l1.cross(l2).normalize();
         }
     }
 
-    Vec3 Model::getRot() const {
-        return this->rot;
+    Vec3 Model::rot() const {
+        return this->m_rot;
     }
 
-    void Model::setRot(Vec3 rot) {
-        this->rot = rot;
+    void Model::rot(Vec3 rot) {
+        this->m_rot = rot;
         recalculateNormals();
     }
 
-    void Model::setRotX(float angle) {
-        this->rot.x = angle;
+    void Model::rotX(float angle) {
+        this->m_rot.x = angle;
         recalculateNormals();
     }
 
-    void Model::setRotY(float angle) {
-        this->rot.y = angle;
+    void Model::rotY(float angle) {
+        this->m_rot.y = angle;
         recalculateNormals();
     }
 
-    void Model::setRotZ(float angle) {
-        this->rot.z = angle;
+    void Model::rotZ(float angle) {
+        this->m_rot.z = angle;
         recalculateNormals();
     }
 
+
+    Vec3 Camera::rot() const {
+        return m_rot;
+    }
+
+    void Camera::rot(Vec3 newRot) {
+        m_rot = newRot;
+        m_front = Mat3x3::rotXYZ(m_rot) * Vec3(0,0,-1);
+        m_up = Mat3x3::rotXYZ(m_rot) * Vec3(0,1,0);
+        m_right = Mat3x3::rotXYZ(m_rot) * Vec3(1,0,0);
+    }
+
+    Vec3 Camera::front() const {
+        return m_front;
+        
+    }
+
+    Vec3 Camera::up() const {
+        return m_up;
+    }
+
+    Vec3 Camera::right() const {
+        return m_right;
+    }
 
     static void _drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, Color color) {
         int dx = x1 - x0;
@@ -177,7 +201,7 @@ namespace render {
     }
     
     void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
-        Mat3x3 rot = Mat3x3::rotXYZ(model.getRot());
+        Mat3x3 rot = Mat3x3::rotXYZ(model.rot());
 
         static std::vector<Vec3> vertices; // leak
         vertices.reserve(model.vertices.size());
@@ -228,10 +252,16 @@ namespace render {
             v1 = v1 * model.scale + position;
             v2 = v2 * model.scale + position;
             v3 = v3 * model.scale + position;
+            float v1y = ((v1 * cam.up()) / cam.up().len()).len();
+            float v1x = ((v1 * cam.right()) / cam.right().len()).len();
+            float v2y = ((v2 * cam.up()) / cam.up().len()).len();
+            float v2x = ((v2 * cam.right()) / cam.right().len()).len();
+            float v3y = ((v3 * cam.up()) / cam.up().len()).len();
+            float v3x = ((v3 * cam.right()) / cam.right().len()).len();
             drawTriangleFilled((iVec2[]){
-                    {(int)v1.x, (int)v1.y},
-                    {(int)v2.x, (int)v2.y},
-                    {(int)v3.x, (int)v3.y}
+                    {(int)v1x, (int)v1y},
+                    {(int)v2x, (int)v2y},
+                    {(int)v3x, (int)v3y}
                 },
                 finalColor
             );

@@ -21,16 +21,17 @@ int main(int argc, const char** argv) {
         const char* obj_file_path = argv[i];
         Model model(obj_file_path);
         model.scale = 70.0f;
-        model.setRot({M_PI, 0, 0});
+        model.rot({M_PI, 0, 0});
         models.push_back(model);
     }
 
     SDL::SDL_Init(SDL_INIT_VIDEO);
     Renderer render = Renderer("russ - dev", 800, 600);
+    render.cam.rot(Vec3(0,0,0));
 
     bool isMouseLeftDown = false;
     Vec2 mouseRel;
-    Vec3 position = {400, 300, 0};
+    Vec3 position = {400, 300, -300};
     iVec2 dir = {0, 0};
 
     SDL::Uint32 now = SDL::SDL_GetPerformanceCounter();
@@ -92,12 +93,18 @@ int main(int argc, const char** argv) {
 
         if (isMouseLeftDown) {
             for (auto& model : models) {
-                model.setRot({
-                    model.getRot().x - (float)(M_PI * delta) * mouseRel.y,
-                    model.getRot().y - (float)(M_PI * delta) * mouseRel.x,
-                    model.getRot().z,
+                model.rot({
+                    model.rot().x - (float)(M_PI * delta) * mouseRel.y,
+                    model.rot().y - (float)(M_PI * delta) * mouseRel.x,
+                    model.rot().z,
                 });
             }
+        } else {
+            // render.cam.rot({
+            //     render.cam.rot().x - (float)(M_PI * delta) * mouseRel.y,
+            //     render.cam.rot().y - (float)(M_PI * delta) * mouseRel.x,
+            //     render.cam.rot().z,
+            // });
         }
         // model.setRot({
         //     model.getRot().x, //  + (float)(M_PI_4 * delta),
@@ -108,8 +115,9 @@ int main(int argc, const char** argv) {
         //     model.getRot().y + (float)(M_PI_4 * delta)
         // );
         render.clear({40, 44, 52, 255});
-        for (auto& model : models) {
-            render.drawModel(model, position, {255, 0, 0, 255});
+        for (size_t i = 0; i < models.size(); i++) {
+            Vec3 offset = {(float)i * 100, (float)i * 100, 0};
+            render.drawModel(models[i], position + offset, {255, 0, 0, 255});
         }
         // std::array<iVec2, 3> triangle = {iVec2(600, 200), iVec2(240, 370), iVec2(450, 570)};
         // render.drawTriangleFilled(triangle, {55, 156, 33, 255});
