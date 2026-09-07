@@ -252,12 +252,12 @@ namespace render {
             v1 = v1 * model.scale + position;
             v2 = v2 * model.scale + position;
             v3 = v3 * model.scale + position;
-            float v1y = ((v1 * cam.up()) / cam.up().len()).len();
-            float v1x = ((v1 * cam.right()) / cam.right().len()).len();
-            float v2y = ((v2 * cam.up()) / cam.up().len()).len();
-            float v2x = ((v2 * cam.right()) / cam.right().len()).len();
-            float v3y = ((v3 * cam.up()) / cam.up().len()).len();
-            float v3x = ((v3 * cam.right()) / cam.right().len()).len();
+            float v1y = ((v1 * cam.up()) / cam.up().len());
+            float v1x = ((v1 * cam.right()) / cam.right().len());
+            float v2y = ((v2 * cam.up()) / cam.up().len());
+            float v2x = ((v2 * cam.right()) / cam.right().len());
+            float v3y = ((v3 * cam.up()) / cam.up().len());
+            float v3x = ((v3 * cam.right()) / cam.right().len());
             drawTriangleFilled((iVec2[]){
                     {(int)v1x, (int)v1y},
                     {(int)v2x, (int)v2y},

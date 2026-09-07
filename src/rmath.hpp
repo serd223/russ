@@ -23,7 +23,7 @@ namespace rmath {
     Vec3 operator + (const Vec3& lhs, const Vec3& rhs);
     Vec3 operator - (const Vec3& lhs, const Vec3& rhs);
     Vec3 operator / (const Vec3& lhs, const float& rhs);
-    Vec3 operator * (const Vec3& lhs, const Vec3& rhs);
+    float operator * (const Vec3& lhs, const Vec3& rhs);
     Vec3 operator * (const Vec3& lhs, const float& rhs);
     Vec3 operator * (const float& lhs, const Vec3& rhs);
 
