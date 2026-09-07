@@ -13,6 +13,12 @@ namespace SDL {
 
 typedef SDL::SDL_Color Color;
 
+static void _writePixel(SDL::SDL_Surface* surface, int x, int y, Color color) {
+    if (x >= 0 && x < surface->w && y >= 0 && y < surface->h) {
+        SDL::SDL_WriteSurfacePixel(surface, x, y, color.r, color.g, color.b, color.a);
+    }
+}
+
 static void _drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, Color color) {
     int dx = x1 - x0;
     int dy = y1 - y0;
@@ -25,7 +31,7 @@ static void _drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int
     int x = x0;
 
     for (int y = y0; y <= y1; y++) {
-        SDL::SDL_WriteSurfacePixel(surface, x, y, color.r, color.g, color.b, color.a);
+        _writePixel(surface, x, y, color);
         if (D > 0) {
             x += xi;
             D += (2 * (dx - dy));
@@ -48,7 +54,7 @@ static void _drawLineLow(SDL::SDL_Surface* surface, int x0, int x1, int y0, int 
     int y = y0;
 
     for (int x = x0; x <= x1; x++) {
-        SDL::SDL_WriteSurfacePixel(surface, x, y, color.r, color.g, color.b, color.a);
+        _writePixel(surface, x, y, color);
         if (D > 0) {
             y += yi;
             D += (2 * (dy - dx));
