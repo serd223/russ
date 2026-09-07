@@ -2,12 +2,8 @@
 #include <cstring>
 #include <math.h>
 #include <stdio.h>
-#include <rmath.hpp>
-#include <render.hpp>
-// #include "cube.cpp"
-
-using namespace render;
-using namespace rmath;
+#include "rmath.hpp"
+#include "render.hpp" // Includes camera.hpp and model.hpp
 
 int main(int argc, const char** argv) {
     if (argc < 2) {
@@ -100,27 +96,14 @@ int main(int argc, const char** argv) {
                 });
             }
         } else {
-            // render.cam.rot({
-            //     render.cam.rot().x - (float)(M_PI * delta) * mouseRel.y,
-            //     render.cam.rot().y - (float)(M_PI * delta) * mouseRel.x,
-            //     render.cam.rot().z,
-            // });
+
         }
-        // model.setRot({
-        //     model.getRot().x, //  + (float)(M_PI_4 * delta),
-        //     model.getRot().y, //  + (float)(M_PI_4 * delta),
-        //     model.getRot().z + (float)(M_PI_4 * delta),
-        // });
-        // model.setRotY(
-        //     model.getRot().y + (float)(M_PI_4 * delta)
-        // );
+
         render.clear({40, 44, 52, 255});
         for (size_t i = 0; i < models.size(); i++) {
             Vec3 offset = {(float)i * 100, (float)i * 100, 0};
             render.drawModel(models[i], position + offset, {255, 0, 0, 255});
         }
-        // std::array<iVec2, 3> triangle = {iVec2(600, 200), iVec2(240, 370), iVec2(450, 570)};
-        // render.drawTriangleFilled(triangle, {55, 156, 33, 255});
 
         SDL::SDL_UpdateWindowSurface(render.inner_window);
     }
