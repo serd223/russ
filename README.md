@@ -12,7 +12,8 @@
 ```
 
 Press 'Space' to print current frame time and FPS information.
-Use arrow buttons to move the model around.
+Move mouse to rotate the camera around.
+Use arrow keys to move.
 Hold left click and move mouse to rotate the model.
 Use mouse wheel to change model scale.
 

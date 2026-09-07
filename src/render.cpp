@@ -123,19 +123,15 @@ void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
     for (size_t i = 0; i < model.vertices.size(); i++) {
         vertices[i] = rot * model.vertices[i];
     }
-    std::sort(model.faces.begin(), model.faces.end(), [this, model](const Face& a, const Face& b) {
-        // Assuming the camera is at position (0, 0, 0), we first offset the vertices by a random amount away from the camera
-        // to make sure they are not behind the camera (100 is completely arbitrary here).
-        // Next we calcualte the distance between the face and (0, 0, 0) and sort the faces by that distance.
-        const Vec3 offset = {100, 100, 100};
-        Vec3 v1a = vertices[a.indices.a];
-        Vec3 v2a = vertices[a.indices.b];
-        Vec3 v3a = vertices[a.indices.c];
-        float la = ((v1a + v2a + v3a) * (1.0f/3.0f) + offset) * cam.front();
-        Vec3 v1b = vertices[b.indices.a];
-        Vec3 v2b = vertices[b.indices.b];
-        Vec3 v3b = vertices[b.indices.c];
-        float lb = ((v1b + v2b + v3b) * (1.0f/3.0f) + offset) * cam.front();
+    std::sort(model.faces.begin(), model.faces.end(), [this, model, position](const Face& a, const Face& b) {
+        Vec3 v1a = vertices[a.indices.a] + position - cam.pos;
+        Vec3 v2a = vertices[a.indices.b] + position - cam.pos;
+        Vec3 v3a = vertices[a.indices.c] + position - cam.pos;
+        float la = (v1a + v2a + v3a) * cam.front();
+        Vec3 v1b = vertices[b.indices.a] + position - cam.pos;
+        Vec3 v2b = vertices[b.indices.b] + position - cam.pos;
+        Vec3 v3b = vertices[b.indices.c] + position - cam.pos;
+        float lb = (v1b + v2b + v3b) * cam.front();
         return la > lb;
     });
 
@@ -169,27 +165,27 @@ void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
 
         // Scale and offset model to world position
         // TODO: Position should a member of some class instead of a parameter to this method        
-        v1 = v1 * model.scale + position;
-        v2 = v2 * model.scale + position;
-        v3 = v3 * model.scale + position;
+        v1 = v1 * model.scale + position - cam.pos;
+        v2 = v2 * model.scale + position - cam.pos;
+        v3 = v3 * model.scale + position - cam.pos;
 
-        // The 'screen' can be imagined as the span(up, right).
-        // We basically want to find the 2d projections of our vertices on this span.
-        // By using the formula proj_u(v) = ((u.v)/(|u|^2)).u, we can find the exact projection of our vertices on the span.
-        // However, this results in more 3D vectors, what we actually want is 2D positions on span(up, right).
-        // Thus, we use length of these projections as 2D coordinates.
-        // That simplifies down to u.v/|u| = v.cos(a) where a is the angle between u and v (up/right and vertex).
-        // We can project onto up for the y 2D coordinate, and right for the x 2D coordinate.
-        float v1y = ((v1 * cam.up()) / cam.up().len());
-        float v1x = ((v1 * cam.right()) / cam.right().len());
-        float v2y = ((v2 * cam.up()) / cam.up().len());
-        float v2x = ((v2 * cam.right()) / cam.right().len());
-        float v3y = ((v3 * cam.up()) / cam.up().len());
-        float v3x = ((v3 * cam.right()) / cam.right().len());
+        float v1x = v1 * cam.right();
+        float v1y = v1 * cam.up();
+        float v1z = v1 * cam.front();
+
+        float v2x = v2 * cam.right();
+        float v2y = v2 * cam.up();
+        float v2z = v2 * cam.front();
+
+        float v3x = v3 * cam.right();
+        float v3y = v3 * cam.up();
+        float v3z = v3 * cam.front();
+
+        const float d = 1000.0f; // depth of field
         drawTriangleFilled((iVec2[]){
-                {(int)v1x, (int)v1y},
-                {(int)v2x, (int)v2y},
-                {(int)v3x, (int)v3y}
+                {(int)(v1x/v1z * d) + inner_surface->w / 2, (int)(v1y/v1z * d) + inner_surface->h / 2},
+                {(int)(v2x/v2z * d) + inner_surface->w / 2, (int)(v2y/v2z * d) + inner_surface->h / 2},
+                {(int)(v3x/v3z * d) + inner_surface->w / 2, (int)(v3y/v3z * d) + inner_surface->h / 2}
             },
             finalColor
         );

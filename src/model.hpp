@@ -29,9 +29,9 @@ class Model {
     void rotY(float angle);
     /// reacalculates all normals
     void rotZ(float angle);
+    void recalculateNormals();
 
     private:
-    void recalculateNormals();
     Vec3 m_rot = {0, 0, 0};
     Mat3x3 m_transform = Mat3x3::id();
 };

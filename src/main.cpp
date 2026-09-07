@@ -15,13 +15,14 @@ int main(int argc, const char** argv) {
     for (int i = 1; i < argc; i++) {
         const char* obj_file_path = argv[i];
         Model model(obj_file_path);
-        model.scale = 70.0f;
+        model.scale = 20.0f;
 
         // Pre-rotate vertices around the X axis to fix upside down models
         Mat3x3 rotation = Mat3x3::rotXYZ({M_PI, 0, 0});
         for (auto& v : model.vertices) {
             v = rotation * v;
         }
+        model.recalculateNormals(); // because vertices are rotated
         models.push_back(model);
     }
 
@@ -30,7 +31,7 @@ int main(int argc, const char** argv) {
 
     bool isMouseLeftDown = false;
     Vec2 mouseRel;
-    Vec3 position = {400, 300, -300};
+    Vec3 position = {0, 0, -300};
     iVec2 dir = {0, 0};
 
     SDL::Uint32 now = SDL::SDL_GetPerformanceCounter();
@@ -60,7 +61,9 @@ int main(int argc, const char** argv) {
                     dir.y = 0;
                 }
             } else if (event.type == SDL::SDL_EVENT_KEY_DOWN) {
-                if (event.key.key == SDLK_LEFT) {
+                if (event.key.key == SDLK_ESCAPE) {
+                    goto loop_end;
+                } else if (event.key.key == SDLK_LEFT) {
                     dir.x = -1;
                 } else if (event.key.key == SDLK_RIGHT) {
                     dir.x = 1;
@@ -87,11 +90,8 @@ int main(int argc, const char** argv) {
             }
 
         }
-        render.cam.rot(Vec3(
-            render.cam.rot().x + M_PI_2 * delta * (float)dir.x,
-            render.cam.rot().y + M_PI_2 * delta * (float)dir.y,
-            render.cam.rot().z
-        ));
+        render.cam.pos = render.cam.pos - 60.0 * delta * render.cam.front() * (float)dir.y;
+        render.cam.pos = render.cam.pos + 60.0 * delta * render.cam.right() * (float)dir.x;
 
         if (isMouseLeftDown) {
             for (auto& model : models) {
@@ -101,6 +101,12 @@ int main(int argc, const char** argv) {
                     model.rot().z,
                 });
             }
+        } else {
+            render.cam.rot({
+                render.cam.rot().x + (float)(M_PI_4 * delta) * mouseRel.y,
+                render.cam.rot().y - (float)(M_PI_4 * delta) * mouseRel.x,
+                render.cam.rot().z,
+            });
         }
 
         render.clear({40, 44, 52, 255});
