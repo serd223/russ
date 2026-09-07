@@ -28,6 +28,7 @@ int main(int argc, const char** argv) {
 
     SDL::SDL_Init(SDL_INIT_VIDEO);
     Renderer render = Renderer("russ - dev", 800, 600);
+    SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, true);
 
     bool isMouseLeftDown = false;
     Vec2 mouseRel;
@@ -51,33 +52,35 @@ int main(int argc, const char** argv) {
             else if (event.type == SDL::SDL_EVENT_KEY_UP) {
                 if (event.key.key == SDLK_SPACE) {
                     printf("Frame Time: %.3fms, FPS: %.3f\n", delta * 1000.0, 1.0 / delta);
-                } else if (event.key.key == SDLK_LEFT) {
+                } else if (event.key.key == SDLK_A) {
                     dir.x = 0;
-                } else if (event.key.key == SDLK_RIGHT) {
+                } else if (event.key.key == SDLK_D) {
                     dir.x = 0;
-                } else if (event.key.key == SDLK_UP) {
+                } else if (event.key.key == SDLK_W) {
                     dir.y = 0;
-                } else if (event.key.key == SDLK_DOWN) {
+                } else if (event.key.key == SDLK_S) {
                     dir.y = 0;
                 }
             } else if (event.type == SDL::SDL_EVENT_KEY_DOWN) {
                 if (event.key.key == SDLK_ESCAPE) {
                     goto loop_end;
-                } else if (event.key.key == SDLK_LEFT) {
+                } else if (event.key.key == SDLK_A) {
                     dir.x = -1;
-                } else if (event.key.key == SDLK_RIGHT) {
+                } else if (event.key.key == SDLK_D) {
                     dir.x = 1;
-                } else if (event.key.key == SDLK_UP) {
+                } else if (event.key.key == SDLK_W) {
                     dir.y = -1;
-                } else if (event.key.key == SDLK_DOWN) {
+                } else if (event.key.key == SDLK_S) {
                     dir.y = 1;
                 }
             } else if (event.type == SDL::SDL_EVENT_MOUSE_BUTTON_DOWN) {
                 if (event.button.button == SDL_BUTTON_LEFT) {
+                    SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, false);
                     isMouseLeftDown = true;
                 }
             } else if (event.type == SDL::SDL_EVENT_MOUSE_BUTTON_UP) {
                 if (event.button.button == SDL_BUTTON_LEFT) {
+                    SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, true);
                     isMouseLeftDown = false;
                 }
             } else if (event.type == SDL::SDL_EVENT_MOUSE_MOTION) {
@@ -102,11 +105,14 @@ int main(int argc, const char** argv) {
                 });
             }
         } else {
-            render.cam.rot({
-                render.cam.rot().x + (float)(M_PI_4 * delta) * mouseRel.y,
-                render.cam.rot().y - (float)(M_PI_4 * delta) * mouseRel.x,
+            Vec3 newCamRot = {
+                render.cam.rot().x + (float)(M_PI_2 * delta) * mouseRel.y,
+                render.cam.rot().y - (float)(M_PI_2 * delta) * mouseRel.x,
                 render.cam.rot().z,
-            });
+            };
+            if (newCamRot.x >= M_PI_4 * 3.0f) newCamRot.x = M_PI_4 * 3.0f;
+            if (newCamRot.x <= -M_PI_4 * 3.0f) newCamRot.x = -M_PI_4 * 3.0f;
+            render.cam.rot(newCamRot);
         }
 
         render.clear({40, 44, 52, 255});

@@ -11,9 +11,10 @@
   $ ./bin/main ./obj/teapot.obj
 ```
 
+Press 'Escape' to quit.
 Press 'Space' to print current frame time and FPS information.
 Move mouse to rotate the camera around.
-Use arrow keys to move.
+Use WASD to move.
 Hold left click and move mouse to rotate the model.
 Use mouse wheel to change model scale.
 
