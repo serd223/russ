@@ -122,21 +122,32 @@ void Renderer::drawLine(Vec3 v1, Vec3 v2, Color color) {
 }
 
 void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
+    // TODO: I think **some** piece of math here still implicitly expects
+    // cam.front to be (0, 0, -1) because something is still wrong with camera rotation
+
     Mat3x3 rot = Mat3x3::rotXYZ(model.rot());
 
     static std::vector<Vec3> vertices; // leak
     vertices.resize(model.vertices.size());
     for (size_t i = 0; i < model.vertices.size(); i++) {
-        vertices[i] = rot * model.vertices[i];
+        // TODO: Position should a member of some class instead of a parameter to this method
+        // Scale and offset vertices to world positions
+        vertices[i] = (rot * model.vertices[i]) * model.scale + position;
     }
-    std::sort(model.faces.begin(), model.faces.end(), [this, model, position](const Face& a, const Face& b) {
-        Vec3 v1a = vertices[a.indices.a] + position - cam.pos;
-        Vec3 v2a = vertices[a.indices.b] + position - cam.pos;
-        Vec3 v3a = vertices[a.indices.c] + position - cam.pos;
+    std::sort(model.faces.begin(), model.faces.end(), [this, model](const Face& a, const Face& b) {
+        Vec3 v1a = vertices[a.indices.a] - cam.pos;
+        Vec3 v2a = vertices[a.indices.b] - cam.pos;
+        Vec3 v3a = vertices[a.indices.c] - cam.pos;
+        // We basically want to calculate the perpandicular distance from
+        // the middle of the face to span(cam.right, cam.up). The correct
+        // formula would be ((v1a + v2a + v3a)/3 * front)/|front| but since this is
+        // purely for sorting we can drop /3 and the ordering will reamin
+        // the same. And we can drop |front| because up,right,front are unit vectors.
         float la = (v1a + v2a + v3a) * cam.front();
-        Vec3 v1b = vertices[b.indices.a] + position - cam.pos;
-        Vec3 v2b = vertices[b.indices.b] + position - cam.pos;
-        Vec3 v3b = vertices[b.indices.c] + position - cam.pos;
+
+        Vec3 v1b = vertices[b.indices.a] - cam.pos;
+        Vec3 v2b = vertices[b.indices.b] - cam.pos;
+        Vec3 v3b = vertices[b.indices.c] - cam.pos;
         float lb = (v1b + v2b + v3b) * cam.front();
         return la > lb;
     });
@@ -169,12 +180,16 @@ void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
             finalColor.b = (int)((float)finalColor.b * (1.0 - t));
         }
 
-        // Scale and offset model to world position
-        // TODO: Position should a member of some class instead of a parameter to this method        
-        v1 = v1 * model.scale + position - cam.pos;
-        v2 = v2 * model.scale + position - cam.pos;
-        v3 = v3 * model.scale + position - cam.pos;
+        // Offset model to camera-relative position
+        v1 = v1 - cam.pos;
+        v2 = v2 - cam.pos;
+        v3 = v3 - cam.pos;
 
+        // We just do a change of basis transformation to get the
+        // coordinates of the vertices in camera space. A regular change of
+        // basis works here because we already subtracted the position of the
+        // camera from the vertices. (literally 5 lines above this one)
+        // So, the origin is constant and at (0, 0, 0)
         float v1x = v1 * cam.right();
         float v1y = v1 * cam.up();
         float v1z = v1 * cam.front();
@@ -187,7 +202,21 @@ void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
         float v3y = v3 * cam.up();
         float v3z = v3 * cam.front();
 
-        const float d = 1000.0f; // depth of field
+        // We divide x and y coordinates by z to simulate depth.
+        // Bunu daha rahat açıklamak için Türkçeye geçiyorum, görüş alanını bir piramit gibi düşün
+        // x ve y piramitin taban alanındaki yatay ve dikey kısım, z de piramitin yüksekliği.
+        // Bildiğin benzerlik yapıyoruz aslında. Elde ettiğimiz sayı küçük olduğu için de bir constant
+        // ile çarpıyoruz. Ben vaguely depth of field diye bir terim hatırladığım için o ismi kullandım
+        // ama sanırım mantık olarak merceklerdeki odak mesafesine denk geliyor? idk.
+        // Surface dimensionların yarısını eklememizin sebebi de kameranın ortasının ekranın ortasına
+        // denk gelmesi lazım. Yani evet kamera orijiniyle ekran orijini aynı noktada değil
+
+        // When d is decreased to small values, a very apparent fisheye effect can be observed
+        const float d = 2000.0f; // depth of field
+
+        // TODO: Just increasing d doesn't seem to get rid of the fisheye effect, there is still noticable skewing
+        // TODO: Possible divide by zero?
+        // TODO: Objects behind the camera shouldn't be drawn (currently results in picture mirrored both horizontally and vertically, try changing front to (0, 0, 1) to observe the effect)
         drawTriangleFilled((iVec2[]){
                 {(int)(v1x/v1z * d) + inner_surface->w / 2, (int)(v1y/v1z * d) + inner_surface->h / 2},
                 {(int)(v2x/v2z * d) + inner_surface->w / 2, (int)(v2y/v2z * d) + inner_surface->h / 2},

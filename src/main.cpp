@@ -15,7 +15,7 @@ int main(int argc, const char** argv) {
     for (int i = 1; i < argc; i++) {
         const char* obj_file_path = argv[i];
         Model model(obj_file_path);
-        model.scale = 20.0f;
+        model.scale = 10.0f;
 
         // Pre-rotate vertices around the X axis to fix upside down models
         Mat3x3 rotation = Mat3x3::rotXYZ({M_PI, 0, 0});
@@ -28,7 +28,7 @@ int main(int argc, const char** argv) {
 
     SDL::SDL_Init(SDL_INIT_VIDEO);
     Renderer render = Renderer("russ - dev", 800, 600);
-    SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, true);
+    SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, true); // grab and hide mouse cursor
 
     bool isMouseLeftDown = false;
     Vec2 mouseRel;
@@ -93,6 +93,7 @@ int main(int argc, const char** argv) {
             }
 
         }
+
         render.cam.pos = render.cam.pos - 60.0 * delta * render.cam.front() * (float)dir.y;
         render.cam.pos = render.cam.pos + 60.0 * delta * render.cam.right() * (float)dir.x;
 
@@ -106,8 +107,8 @@ int main(int argc, const char** argv) {
             }
         } else {
             Vec3 newCamRot = {
-                render.cam.rot().x + (float)(M_PI_2 * delta) * mouseRel.y,
-                render.cam.rot().y - (float)(M_PI_2 * delta) * mouseRel.x,
+                render.cam.rot().x + (float)(M_PI_4 * delta) * mouseRel.y,
+                render.cam.rot().y - (float)(M_PI_4 * delta) * mouseRel.x,
                 render.cam.rot().z,
             };
             if (newCamRot.x >= M_PI_4 * 3.0f) newCamRot.x = M_PI_4 * 3.0f;
@@ -117,7 +118,7 @@ int main(int argc, const char** argv) {
 
         render.clear({40, 44, 52, 255});
         for (size_t i = 0; i < models.size(); i++) {
-            render.drawModel(models[i], position + Vec3(i*100, i*100, 0), {255, 0, 0, 255});
+            render.drawModel(models[i], position + Vec3(i*10, i*10, -100), {255, 0, 0, 255});
         }
 
         SDL::SDL_UpdateWindowSurface(render.inner_window);
