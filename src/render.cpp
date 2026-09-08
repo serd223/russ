@@ -1,6 +1,7 @@
 #include "rmath.hpp"
 #include <algorithm>
 #include <math.h>
+#include <cstdio>
 #include <span>
 #include <stdio.h>
 #include <vector>
@@ -112,6 +113,7 @@ void Renderer::drawLine(Vec3 v1, Vec3 v2, Color color) {
 }
 
 void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
+    printf("%f, %f %f\n", cam.rot().x, cam.rot().y, cam.rot().z);
     Vec3 position = model.pos - cam.pos;
     // TODO: I think **some** piece of math here still implicitly expects
     // cam.front to be (0, 0, -1) because something is still wrong with camera rotation

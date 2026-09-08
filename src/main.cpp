@@ -121,8 +121,11 @@ int main(int argc, const char** argv) {
                 render.cam.rot().y + (float)(M_PI_4 * delta) * mouseRel.x,
                 render.cam.rot().z,
             };
-            if (newCamRot.x >= M_PI_4 * 3.0f) newCamRot.x = M_PI_4 * 3.0f;
-            if (newCamRot.x <= -M_PI_4 * 3.0f) newCamRot.x = -M_PI_4 * 3.0f;
+            if (newCamRot.x >=  M_PI_2 - 0.001) newCamRot.x = M_PI_2 - 0.001;
+            if (newCamRot.x <= -M_PI_2 + 0.001) newCamRot.x = -M_PI_2 + 0.001;
+
+            if (newCamRot.y >= M_PI) newCamRot.y = M_PI;
+            if (newCamRot.y <= -M_PI) newCamRot.y = -M_PI;
             render.cam.rot(newCamRot);
         }
 
