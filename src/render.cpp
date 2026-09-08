@@ -186,6 +186,7 @@ void Renderer::drawModel(Model& model, Color tint) {
         Vec3 c3 = { v3 * cam.right(), v3 * cam.up(), v3 * cam.front() };
 
         const float d = 1000.0;
+        if (c1.z < 0.15 || c2.z < 0.15 || c3.z < 0.15) continue;
         drawTriangleFilled((iVec2[]){ // - on the y because actual y coordinates are flipped
                 {(int)(c1.x / c1.z * d) + inner_surface->w / 2, -(int)(c1.y / c1.z * d) + inner_surface->h / 2},
                 {(int)(c2.x / c2.z * d) + inner_surface->w / 2, -(int)(c2.y / c2.z * d) + inner_surface->h / 2},
@@ -213,6 +214,9 @@ void Renderer::drawShape(std::span<const Vec3> vertices, std::span<const int> in
 void Renderer::drawTriangleFilled(std::span<const iVec2, 3> vertex, Color color) {
     // Accept vertices as span view and copy them to internal buffer
     iVec2 vertices[3] = {vertex[0], vertex[1], vertex[2]};
+    for (auto& v : vertices) {
+        if (v.x < 0 || v.x > inner_surface->w || v.y < 0 || v.y > inner_surface->h) return;
+    }
     if (vertices[1].y < vertices[0].y) std::swap(vertices[1], vertices[0]);
     if (vertices[2].y < vertices[0].y) std::swap(vertices[2], vertices[0]);
     if (vertices[2].y < vertices[1].y) std::swap(vertices[2], vertices[1]); // v2y > v1y > v0y
