@@ -1,3 +1,4 @@
+#include "rmath.hpp"
 #include <algorithm>
 #include <math.h>
 #include <span>
@@ -121,8 +122,8 @@ void Renderer::drawLine(Vec3 v1, Vec3 v2, Color color) {
     drawLine((int)v1.x, (int)v2.x, (int)v1.y, (int)v2.y, color);
 }
 
-void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
-    position = position - cam.pos;
+void Renderer::drawModel(Model& model, Color tint) {
+    Vec3 position = model.pos - cam.pos;
     // TODO: I think **some** piece of math here still implicitly expects
     // cam.front to be (0, 0, -1) because something is still wrong with camera rotation
 
@@ -131,9 +132,8 @@ void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
     static std::vector<Vec3> vertices; // leak
     vertices.resize(model.vertices.size());
     for (size_t i = 0; i < model.vertices.size(); i++) {
-        // TODO: Position should a member of some class instead of a parameter to this method
         // Scale and offset vertices to world positions
-        vertices[i] = (rot * model.vertices[i]) * model.scale + position;
+        vertices[i] = ((rot * model.vertices[i]) * model.scale) + position;
     }
     std::sort(model.faces.begin(), model.faces.end(), [this, model](const Face& a, const Face& b) {
         Vec3 v1a = vertices[a.indices.a];
@@ -159,7 +159,7 @@ void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
 
         // n . front = |n|.|front|.cos(a), the sign of cos(a) tells us whether the
         // two vectors are pointing in the same direction
-        if ((n * cam.front()) >= 0.0) continue;
+        // if ((n * cam.front()) >= 0.0) continue;
 
         Vec3 v1 = vertices[model.faces[i].indices.a];
         Vec3 v2 = vertices[model.faces[i].indices.b];
@@ -181,24 +181,32 @@ void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
             finalColor.b = (int)((float)finalColor.b * (1.0 - t));
         }
 
-        // Offset model to camera-relative position
-
         // We just do a change of basis transformation to get the
         // coordinates of the vertices in camera space. A regular change of
         // basis works here because we already subtracted the position of the
         // camera from the vertices. (literally 5 lines above this one)
         // So, the origin is constant and at (0, 0, 0)
-        float v1x = v1 * cam.right();
-        float v1y = v1 * cam.up();
-        float v1z = v1 * cam.front();
+        Mat3x3 cRot = {
+            cam.right().x, cam.up().x, cam.front().x, 
+            cam.right().y, cam.up().y, cam.front().y, 
+            cam.right().z, cam.up().z, cam.front().z
+        };
 
-        float v2x = v2 * cam.right();
-        float v2y = v2 * cam.up();
-        float v2z = v2 * cam.front();
+        v1 = cRot * v1;
+        v2 = cRot * v2;
+        v3 = cRot * v3;
 
-        float v3x = v3 * cam.right();
-        float v3y = v3 * cam.up();
-        float v3z = v3 * cam.front();
+        // float v1x = v1 * cam.right();
+        // float v1y = v1 * cam.up();
+        // float v1z = v1 * cam.front();
+// 
+        // float v2x = v2 * cam.right();
+        // float v2y = v2 * cam.up();
+        // float v2z = v2 * cam.front();
+//  
+        // float v3x = v3 * cam.right();
+        // float v3y = v3 * cam.up();
+        // float v3z = v3 * cam.front();
 
         // We divide x and y coordinates by z to simulate depth.
         // Bunu daha rahat açıklamak için Türkçeye geçiyorum, görüş alanını bir piramit gibi düşün
@@ -216,9 +224,9 @@ void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
         // TODO: Possible divide by zero?
         // TODO: Objects behind the camera shouldn't be drawn (currently results in picture mirrored both horizontally and vertically, try changing front to (0, 0, 1) to observe the effect)
         drawTriangleFilled((iVec2[]){
-                {(int)(v1x/v1z * d) + inner_surface->w / 2, (int)(v1y/v1z * d) + inner_surface->h / 2},
-                {(int)(v2x/v2z * d) + inner_surface->w / 2, (int)(v2y/v2z * d) + inner_surface->h / 2},
-                {(int)(v3x/v3z * d) + inner_surface->w / 2, (int)(v3y/v3z * d) + inner_surface->h / 2}
+                {(int)(v1.x/v1.z * d) + inner_surface->w / 2, -(int)(v1.y/v1.z * d) + inner_surface->h / 2},
+                {(int)(v2.x/v2.z * d) + inner_surface->w / 2, -(int)(v2.y/v2.z * d) + inner_surface->h / 2},
+                {(int)(v3.x/v3.z * d) + inner_surface->w / 2, -(int)(v3.y/v3.z * d) + inner_surface->h / 2}
             },
             finalColor
         );
@@ -242,9 +250,6 @@ void Renderer::drawShape(std::span<const Vec3> vertices, std::span<const int> in
 void Renderer::drawTriangleFilled(std::span<const iVec2, 3> vertex, Color color) {
     // Accept vertices as span view and copy them to internal buffer
     iVec2 vertices[3] = {vertex[0], vertex[1], vertex[2]};
-    for (auto& v : vertices) {
-        if (v.x < 0 || v.x > inner_surface->w || v.y < 0 || v.y > inner_surface->h) return;
-    }
     if (vertices[1].y < vertices[0].y) std::swap(vertices[1], vertices[0]);
     if (vertices[2].y < vertices[0].y) std::swap(vertices[2], vertices[0]);
     if (vertices[2].y < vertices[1].y) std::swap(vertices[2], vertices[1]); // v2y > v1y > v0y

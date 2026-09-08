@@ -18,6 +18,7 @@ class Model {
     std::vector<Vec3> vertices;
     std::vector<Face> faces;
     float scale = 1.0f;
+    Vec3 pos;
 
     Model(const char* obj_file_path);
     Vec3 rot() const;

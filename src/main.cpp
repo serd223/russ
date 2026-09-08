@@ -11,18 +11,16 @@ int main(int argc, const char** argv) {
         return 1;
     }
 
+    Vec3 position = {0, 0, -300};
+
     // Load models
     std::vector<Model> models;
     for (int i = 1; i < argc; i++) {
         const char* obj_file_path = argv[i];
         Model model(obj_file_path);
         model.scale = 10.0f;
+        model.pos = position;
 
-        // Pre-rotate vertices around the X axis to fix upside down models
-        Mat3x3 rotation = Mat3x3::rotXYZ({M_PI, 0, 0});
-        for (auto& v : model.vertices) {
-            v = rotation * v;
-        }
         model.recalculateNormals(); // because vertices are rotated
         models.push_back(model);
     }
@@ -33,7 +31,6 @@ int main(int argc, const char** argv) {
 
     bool isMouseLeftDown = false;
     Vec2 mouseRel;
-    Vec3 position = {0, 0, -300};
     iVec2 dir = {0, 0};
 
     SDL::Uint32 now = SDL::SDL_GetPerformanceCounter();
@@ -94,7 +91,7 @@ int main(int argc, const char** argv) {
             }
         }
 
-        render.cam.pos.z = render.cam.pos.z - 60.0 * delta * (float)dir.y;
+        render.cam.pos.z = render.cam.pos.z + 60.0 * delta * (float)dir.y;
         render.cam.pos.x = render.cam.pos.x + 60.0 * delta * (float)dir.x;
 
         if (isMouseLeftDown) {
@@ -118,7 +115,7 @@ int main(int argc, const char** argv) {
 
         render.clear({40, 44, 52, 255});
         for (size_t i = 0; i < models.size(); i++) {
-            render.drawModel(models[i], position + Vec3(i*10, i*10, -100), {255, 0, 0, 255});
+            render.drawModel(models[i], {255, 0, 0, 255});
         }
 
         SDL::SDL_UpdateWindowSurface(render.inner_window);

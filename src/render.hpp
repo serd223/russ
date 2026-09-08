@@ -24,7 +24,7 @@ class Renderer {
     Renderer(const char* title, int w, int h);
     ~Renderer();
     void clear(Color color);
-    void drawModel(Model& model, Vec3 position, Color tint);
+    void drawModel(Model& model, Color tint);
     void drawLine(int x0, int x1, int y0, int y1, Color color);
     void drawLine(Vec3 v1, Vec3 v2, Color color);
     void drawShape(std::span<const Vec3> vertices, std::span<const int> indices, Color color);
