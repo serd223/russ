@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <rmath.hpp>
+#include <span>
 
 class Face {
     public:
@@ -21,6 +22,8 @@ class Model {
     Vec3 pos;
 
     Model(const char* obj_file_path);
+    Model(std::span<const Vec3> vertices, std::span<const Face> faces, float scale, Vec3 pos);
+
     Vec3 rot() const;
     /// recalculates all normals
     void rot(Vec3 rot);

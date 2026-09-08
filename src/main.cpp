@@ -24,11 +24,27 @@ int main(int argc, const char** argv) {
         model.recalculateNormals(); // because vertices are rotated
         models.push_back(model);
     }
+    const Vec3 vs[] = {
+        {-5.0f,-5.0f,-55.0f},
+        { 5.0f,-5.0f,-55.0f},
+        {-5.0f,-5.0f,-65.0f},
+        { 5.0f,-5.0f,-65.0f}
+    };
+    const Face fs[] = {
+        {{0, 1, 2}, {}},
+        {{1, 3, 2}, {}}
+    };
+    Model floor_model(vs, fs, 5.0f, {0.0f, 0.0f, 0.0f});
 
     SDL::SDL_Init(SDL_INIT_VIDEO);
     Renderer render = Renderer("russ - dev", 800, 600);
     SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, true); // grab and hide mouse cursor
-
+    render.cam.pos.y = 80.;
+    render.cam.rot(Vec3(
+        -M_PI_4 / 3.0,
+        render.cam.rot().y,
+        render.cam.rot().z 
+    ));
     bool isMouseLeftDown = false;
     Vec2 mouseRel;
     iVec2 dir = {0, 0};
@@ -114,6 +130,7 @@ int main(int argc, const char** argv) {
         render.cam.pos = render.cam.pos + 60.0 * delta * (float)dir.x * render.cam.right();
 
         render.clear({40, 44, 52, 255});
+        render.drawModel(floor_model, {0,0,128,255}, false);
         for (size_t i = 0; i < models.size(); i++) {
             render.drawModel(models[i], {255, 0, 0, 255});
         }

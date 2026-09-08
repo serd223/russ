@@ -31,6 +31,15 @@ Model::Model(const char* obj_file_path) {
     printf("Succesfully loaded %lu vertices and %lu faces from file '%s'.\n", vertices.size(), faces.size(), obj_file_path);
 }
 
+Model::Model(std::span<const Vec3> vertices, std::span<const Face> faces, float scale, Vec3 pos) {
+    this->vertices = std::vector(vertices.begin(), vertices.end());
+    this->faces = std::vector(faces.begin(), faces.end());
+    this->scale = scale;
+    this->pos = pos;
+    m_rot = {0,0,0};
+    recalculateNormals();
+}
+
 void Model::recalculateNormals() {
     for (size_t i = 0; i < faces.size(); i++) {
         Vec3 v1 = vertices[faces[i].indices.a];

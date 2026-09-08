@@ -81,17 +81,6 @@ static void _drawLine(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1,
     }
 }
 
-static std::vector<iVec2> _interpolate(iVec2& v0, iVec2& v1) {
-    std::vector<iVec2> out;
-    for (int i = v0.y; i < v1.y; i++) {
-        float o = (float)((i - v0.y) * (v1.x - v0.x)) / (float)(v1.y - v0.y) + v0.x;
-        int ox = static_cast<int>(round(o));
-        iVec2 v{ox, i};
-        out.push_back(v);
-    }
-    return out;
-}
-
 Renderer::Renderer(const char* title, int w, int h) {
     inner_window = SDL::SDL_CreateWindow(title, w, h, 0);
     if (inner_window == NULL) {
@@ -122,7 +111,7 @@ void Renderer::drawLine(Vec3 v1, Vec3 v2, Color color) {
     drawLine((int)v1.x, (int)v2.x, (int)v1.y, (int)v2.y, color);
 }
 
-void Renderer::drawModel(Model& model, Color tint) {
+void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
     Vec3 position = model.pos - cam.pos;
     // TODO: I think **some** piece of math here still implicitly expects
     // cam.front to be (0, 0, -1) because something is still wrong with camera rotation
@@ -166,19 +155,21 @@ void Renderer::drawModel(Model& model, Color tint) {
         Vec3 v3 = vertices[model.faces[i].indices.c];
 
         Color finalColor = tint;
-        // Fake lighting
-        const float nMax = 0.65;
-        if (n.y >= 0.0) {
-            float t = n.y > nMax ? nMax : n.y;
-            finalColor.r = (int)((float)finalColor.r * (1.0 - t));
-            finalColor.g = (int)((float)finalColor.g * (1.0 - t));
-            finalColor.b = (int)((float)finalColor.b * (1.0 - t));
-        }
-        if (n.x >= 0.0) {
-            float t = n.x > nMax ? nMax : n.x;
-            finalColor.r = (int)((float)finalColor.r * (1.0 - t));
-            finalColor.g = (int)((float)finalColor.g * (1.0 - t));
-            finalColor.b = (int)((float)finalColor.b * (1.0 - t));
+        if (doLighting) {
+            // Fake lighting
+            const float nMax = 0.65;
+            if (n.y >= 0.0) {
+                float t = n.y > nMax ? nMax : n.y;
+                finalColor.r = (int)((float)finalColor.r * (1.0 - t));
+                finalColor.g = (int)((float)finalColor.g * (1.0 - t));
+                finalColor.b = (int)((float)finalColor.b * (1.0 - t));
+            }
+            if (n.x >= 0.0) {
+                float t = n.x > nMax ? nMax : n.x;
+                finalColor.r = (int)((float)finalColor.r * (1.0 - t));
+                finalColor.g = (int)((float)finalColor.g * (1.0 - t));
+                finalColor.b = (int)((float)finalColor.b * (1.0 - t));
+            }
         }
 
         Vec3 c1 = { v1 * cam.right(), v1 * cam.up(), v1 * cam.front() };
@@ -211,19 +202,34 @@ void Renderer::drawShape(std::span<const Vec3> vertices, std::span<const int> in
     }
 }
 
+static std::vector<iVec2> _interpolate(iVec2& v0, iVec2& v1, int w, int h) {
+    std::vector<iVec2> out;
+    for (int i = v0.y; i < v1.y; i++) {
+        float o = (float)((i - v0.y) * (v1.x - v0.x)) / (float)(v1.y - v0.y) + v0.x;
+        int ox = static_cast<int>(round(o));
+        iVec2 v{ox, i};
+        if (v.x < 0) v.x = 0;
+        if (v.x > w) v.x = w;
+        if (v.y < 0) v.y = 0;
+        if (v.y > h) v.y = h;
+        out.push_back(v);
+    }
+    return out;
+}
+
 void Renderer::drawTriangleFilled(std::span<const iVec2, 3> vertex, Color color) {
     // Accept vertices as span view and copy them to internal buffer
     iVec2 vertices[3] = {vertex[0], vertex[1], vertex[2]};
-    for (auto& v : vertices) {
-        if (v.x < 0 || v.x > inner_surface->w || v.y < 0 || v.y > inner_surface->h) return;
-    }
+    // for (auto& v : vertices) {
+    //     if (v.x < 0 || v.x > inner_surface->w || v.y < 0 || v.y > inner_surface->h) return;
+    // }
     if (vertices[1].y < vertices[0].y) std::swap(vertices[1], vertices[0]);
     if (vertices[2].y < vertices[0].y) std::swap(vertices[2], vertices[0]);
     if (vertices[2].y < vertices[1].y) std::swap(vertices[2], vertices[1]); // v2y > v1y > v0y
 
-    std::vector<iVec2> l02 = _interpolate(vertices[0], vertices[2]);
-    std::vector<iVec2> l01 = _interpolate(vertices[0], vertices[1]);
-    std::vector<iVec2> l12 = _interpolate(vertices[1], vertices[2]);
+    std::vector<iVec2> l02 = _interpolate(vertices[0], vertices[2], inner_surface->w, inner_surface->h);
+    std::vector<iVec2> l01 = _interpolate(vertices[0], vertices[1], inner_surface->w, inner_surface->h);
+    std::vector<iVec2> l12 = _interpolate(vertices[1], vertices[2], inner_surface->w, inner_surface->h);
 
     l01.insert(l01.end(), l12.begin(), l12.end());
     
