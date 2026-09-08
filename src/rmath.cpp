@@ -47,11 +47,7 @@ Vec3 operator / (const Vec3& lhs, const float& rhs) {
 }
 
 float operator * (const Vec3& lhs, const Vec3& rhs) {
-    return {
-        lhs.x * rhs.x +
-        lhs.y * rhs.y +
-        lhs.z * rhs.z
-    };   
+    return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
 }
 
 Vec3 operator * (const Vec3& lhs, const float& rhs) {
