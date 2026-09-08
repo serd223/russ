@@ -1,3 +1,4 @@
+#include "camera.hpp"
 #include <string.h>
 #include <math.h>
 #include <stdio.h>
@@ -91,11 +92,10 @@ int main(int argc, const char** argv) {
                     model.scale += event.wheel.y * delta * 100.0f;
                 }
             }
-
         }
 
-        render.cam.pos = render.cam.pos - 60.0 * delta * render.cam.front() * (float)dir.y;
-        render.cam.pos = render.cam.pos + 60.0 * delta * render.cam.right() * (float)dir.x;
+        render.cam.pos.z = render.cam.pos.z - 60.0 * delta * (float)dir.y;
+        render.cam.pos.x = render.cam.pos.x + 60.0 * delta * (float)dir.x;
 
         if (isMouseLeftDown) {
             for (auto& model : models) {

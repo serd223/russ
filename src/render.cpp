@@ -122,6 +122,7 @@ void Renderer::drawLine(Vec3 v1, Vec3 v2, Color color) {
 }
 
 void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
+    position = position - cam.pos;
     // TODO: I think **some** piece of math here still implicitly expects
     // cam.front to be (0, 0, -1) because something is still wrong with camera rotation
 
@@ -135,9 +136,9 @@ void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
         vertices[i] = (rot * model.vertices[i]) * model.scale + position;
     }
     std::sort(model.faces.begin(), model.faces.end(), [this, model](const Face& a, const Face& b) {
-        Vec3 v1a = vertices[a.indices.a] - cam.pos;
-        Vec3 v2a = vertices[a.indices.b] - cam.pos;
-        Vec3 v3a = vertices[a.indices.c] - cam.pos;
+        Vec3 v1a = vertices[a.indices.a];
+        Vec3 v2a = vertices[a.indices.b];
+        Vec3 v3a = vertices[a.indices.c];
         // We basically want to calculate the perpandicular distance from
         // the middle of the face to span(cam.right, cam.up). The correct
         // formula would be ((v1a + v2a + v3a)/3 * front)/|front| but since this is
@@ -145,9 +146,9 @@ void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
         // the same. And we can drop |front| because up,right,front are unit vectors.
         float la = (v1a + v2a + v3a) * cam.front();
 
-        Vec3 v1b = vertices[b.indices.a] - cam.pos;
-        Vec3 v2b = vertices[b.indices.b] - cam.pos;
-        Vec3 v3b = vertices[b.indices.c] - cam.pos;
+        Vec3 v1b = vertices[b.indices.a];
+        Vec3 v2b = vertices[b.indices.b];
+        Vec3 v3b = vertices[b.indices.c];
         float lb = (v1b + v2b + v3b) * cam.front();
         return la > lb;
     });
@@ -181,9 +182,6 @@ void Renderer::drawModel(Model& model, Vec3 position, Color tint) {
         }
 
         // Offset model to camera-relative position
-        v1 = v1 - cam.pos;
-        v2 = v2 - cam.pos;
-        v3 = v3 - cam.pos;
 
         // We just do a change of basis transformation to get the
         // coordinates of the vertices in camera space. A regular change of

@@ -1,4 +1,6 @@
 bin
 obj
+.cache
 .clangd
 .vscode
+compile_commands.json

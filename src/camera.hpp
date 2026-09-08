@@ -9,6 +9,7 @@
 
 class Camera {
     public:
+    const Vec3 origin = {0, 0, 0};
     Vec3 pos = {0, 0, 0};
     Vec3 rot() const;
     /// recalculates up, right, front
