@@ -91,9 +91,6 @@ int main(int argc, const char** argv) {
             }
         }
 
-        render.cam.pos.z = render.cam.pos.z + 60.0 * delta * (float)dir.y;
-        render.cam.pos.x = render.cam.pos.x + 60.0 * delta * (float)dir.x;
-
         if (isMouseLeftDown) {
             for (auto& model : models) {
                 model.rot({
@@ -104,14 +101,17 @@ int main(int argc, const char** argv) {
             }
         } else {
             Vec3 newCamRot = {
-                render.cam.rot().x + (float)(M_PI_4 * delta) * mouseRel.y,
-                render.cam.rot().y - (float)(M_PI_4 * delta) * mouseRel.x,
+                render.cam.rot().x - (float)(M_PI_4 * delta) * mouseRel.y,
+                render.cam.rot().y + (float)(M_PI_4 * delta) * mouseRel.x,
                 render.cam.rot().z,
             };
             if (newCamRot.x >= M_PI_4 * 3.0f) newCamRot.x = M_PI_4 * 3.0f;
             if (newCamRot.x <= -M_PI_4 * 3.0f) newCamRot.x = -M_PI_4 * 3.0f;
             render.cam.rot(newCamRot);
         }
+
+        render.cam.pos = render.cam.pos - 60.0 * delta * (float)dir.y * render.cam.front();
+        render.cam.pos = render.cam.pos + 60.0 * delta * (float)dir.x * render.cam.right();
 
         render.clear({40, 44, 52, 255});
         for (size_t i = 0; i < models.size(); i++) {

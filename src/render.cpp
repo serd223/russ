@@ -159,7 +159,7 @@ void Renderer::drawModel(Model& model, Color tint) {
 
         // n . front = |n|.|front|.cos(a), the sign of cos(a) tells us whether the
         // two vectors are pointing in the same direction
-        // if ((n * cam.front()) >= 0.0) continue;
+        if ((n * cam.front()) >= 0.0) continue;
 
         Vec3 v1 = vertices[model.faces[i].indices.a];
         Vec3 v2 = vertices[model.faces[i].indices.b];
@@ -181,52 +181,15 @@ void Renderer::drawModel(Model& model, Color tint) {
             finalColor.b = (int)((float)finalColor.b * (1.0 - t));
         }
 
-        // We just do a change of basis transformation to get the
-        // coordinates of the vertices in camera space. A regular change of
-        // basis works here because we already subtracted the position of the
-        // camera from the vertices. (literally 5 lines above this one)
-        // So, the origin is constant and at (0, 0, 0)
-        Mat3x3 cRot = {
-            cam.right().x, cam.up().x, cam.front().x, 
-            cam.right().y, cam.up().y, cam.front().y, 
-            cam.right().z, cam.up().z, cam.front().z
-        };
+        Vec3 c1 = { v1 * cam.right(), v1 * cam.up(), v1 * cam.front() };
+        Vec3 c2 = { v2 * cam.right(), v2 * cam.up(), v2 * cam.front() };
+        Vec3 c3 = { v3 * cam.right(), v3 * cam.up(), v3 * cam.front() };
 
-        v1 = cRot * v1;
-        v2 = cRot * v2;
-        v3 = cRot * v3;
-
-        // float v1x = v1 * cam.right();
-        // float v1y = v1 * cam.up();
-        // float v1z = v1 * cam.front();
-// 
-        // float v2x = v2 * cam.right();
-        // float v2y = v2 * cam.up();
-        // float v2z = v2 * cam.front();
-//  
-        // float v3x = v3 * cam.right();
-        // float v3y = v3 * cam.up();
-        // float v3z = v3 * cam.front();
-
-        // We divide x and y coordinates by z to simulate depth.
-        // Bunu daha rahat açıklamak için Türkçeye geçiyorum, görüş alanını bir piramit gibi düşün
-        // x ve y piramitin taban alanındaki yatay ve dikey kısım, z de piramitin yüksekliği.
-        // Bildiğin benzerlik yapıyoruz aslında. Elde ettiğimiz sayı küçük olduğu için de bir constant
-        // ile çarpıyoruz. Ben vaguely depth of field diye bir terim hatırladığım için o ismi kullandım
-        // ama sanırım mantık olarak merceklerdeki odak mesafesine denk geliyor? idk.
-        // Surface dimensionların yarısını eklememizin sebebi de kameranın ortasının ekranın ortasına
-        // denk gelmesi lazım. Yani evet kamera orijiniyle ekran orijini aynı noktada değil
-
-        // When d is decreased to small values, a very apparent fisheye effect can be observed
-        const float d = 2000.0f; // depth of field
-
-        // TODO: Just increasing d doesn't seem to get rid of the fisheye effect, there is still noticable skewing
-        // TODO: Possible divide by zero?
-        // TODO: Objects behind the camera shouldn't be drawn (currently results in picture mirrored both horizontally and vertically, try changing front to (0, 0, 1) to observe the effect)
-        drawTriangleFilled((iVec2[]){
-                {(int)(v1.x/v1.z * d) + inner_surface->w / 2, -(int)(v1.y/v1.z * d) + inner_surface->h / 2},
-                {(int)(v2.x/v2.z * d) + inner_surface->w / 2, -(int)(v2.y/v2.z * d) + inner_surface->h / 2},
-                {(int)(v3.x/v3.z * d) + inner_surface->w / 2, -(int)(v3.y/v3.z * d) + inner_surface->h / 2}
+        const float d = 1000.0;
+        drawTriangleFilled((iVec2[]){ // - on the y because actual y coordinates are flipped
+                {(int)(c1.x / c1.z * d) + inner_surface->w / 2, -(int)(c1.y / c1.z * d) + inner_surface->h / 2},
+                {(int)(c2.x / c2.z * d) + inner_surface->w / 2, -(int)(c2.y / c2.z * d) + inner_surface->h / 2},
+                {(int)(c3.x / c3.z * d) + inner_surface->w / 2, -(int)(c3.y / c3.z * d) + inner_surface->h / 2}
             },
             finalColor
         );

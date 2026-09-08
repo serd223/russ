@@ -1,5 +1,6 @@
 #include <camera.hpp>
 #include <rmath.hpp>
+#include <math.h>
 
 Camera::Camera(Vec3 rot) {
     this->rot(rot);
@@ -11,9 +12,14 @@ Vec3 Camera::rot() const {
 
 void Camera::rot(Vec3 newRot) {
     m_rot = newRot;
-    m_front = Mat3x3::rotXYZ(m_rot) * Vec3(0,0,-1);
-    m_up = Mat3x3::rotXYZ(m_rot) * Vec3(0,1,0);
-    m_right = Mat3x3::rotXYZ(m_rot) * Vec3(1,0,0);
+    float pitch = newRot.x, yaw = newRot.y;
+    m_front.x = cosf(pitch) * sinf(yaw);
+    m_front.y = sinf(pitch);
+    m_front.z = cosf(pitch) * cosf(yaw) * -1;
+    m_front = m_front.normalize();
+    //
+    m_right = m_front.cross(Vec3(0,1,0)).normalize();
+    m_up = m_right.cross(m_front);
 }
 
 Vec3 Camera::front() const {
