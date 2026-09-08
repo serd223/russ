@@ -220,9 +220,17 @@ static std::vector<iVec2> _interpolate(iVec2& v0, iVec2& v1, int w, int h) {
 void Renderer::drawTriangleFilled(std::span<const iVec2, 3> vertex, Color color) {
     // Accept vertices as span view and copy them to internal buffer
     iVec2 vertices[3] = {vertex[0], vertex[1], vertex[2]};
-    // for (auto& v : vertices) {
-    //     if (v.x < 0 || v.x > inner_surface->w || v.y < 0 || v.y > inner_surface->h) return;
-    // }
+    bool all_x_neg = true;
+    bool all_y_neg = true;
+    for (auto& v : vertices) {
+        if (v.x >= 0) {
+            all_x_neg = false;
+        }
+        if (v.y >= 0) {
+            all_y_neg = false;
+        }
+    }
+    if (all_x_neg || all_y_neg) return;
     if (vertices[1].y < vertices[0].y) std::swap(vertices[1], vertices[0]);
     if (vertices[2].y < vertices[0].y) std::swap(vertices[2], vertices[0]);
     if (vertices[2].y < vertices[1].y) std::swap(vertices[2], vertices[1]); // v2y > v1y > v0y
