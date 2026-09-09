@@ -1,4 +1,6 @@
 #pragma once
+#include <vector>
+#include <array>
 
 /*
     Camera object, this is the POV of our Renderer. Camera's position in world coordinates,
@@ -17,10 +19,12 @@ class Camera {
     Vec3 front() const;
     Vec3 up() const;
     Vec3 right() const;
-
+    bool draw(std::vector<Vec3>& vertices);
+    
     Camera(Vec3 rot);
-
+    
     private:
+    std::array<Vec3,4> m_sn;
     Vec3 m_rot;
     Vec3 m_up;
     Vec3 m_right;

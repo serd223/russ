@@ -113,7 +113,7 @@ void Renderer::drawLine(Vec3 v1, Vec3 v2, Color color) {
 }
 
 void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
-    printf("%f, %f %f\n", cam.rot().x, cam.rot().y, cam.rot().z);
+    // printf("%f, %f %f\n", cam.rot().x, cam.rot().y, cam.rot().z);
     Vec3 position = model.pos - cam.pos;
     // TODO: I think **some** piece of math here still implicitly expects
     // cam.front to be (0, 0, -1) because something is still wrong with camera rotation
@@ -145,7 +145,9 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
     });
 
     // for (std::size_t i = model.faces.size() - 1; i > 0; i--) {
+    int drawn = 0;
     for (std::size_t i = 0; i < model.faces.size(); i++) {
+
         Vec3 n  = model.faces[i].normal; // Rotation already applied
 
         // n . front = |n|.|front|.cos(a), the sign of cos(a) tells us whether the
@@ -155,6 +157,16 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         Vec3 v1 = vertices[model.faces[i].indices.a];
         Vec3 v2 = vertices[model.faces[i].indices.b];
         Vec3 v3 = vertices[model.faces[i].indices.c];
+
+        Vec3 c1 = { v1 * cam.right(), v1 * cam.up(), v1 * cam.front() };
+        Vec3 c2 = { v2 * cam.right(), v2 * cam.up(), v2 * cam.front() };
+        Vec3 c3 = { v3 * cam.right(), v3 * cam.up(), v3 * cam.front() };
+
+        std::vector<Vec3> face = {c1, c2, c3};
+
+        if (!cam.draw(face)) continue;
+        drawn++;
+     
 
         Color finalColor = tint;
         if (doLighting) {
@@ -174,10 +186,6 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
             }
         }
 
-        Vec3 c1 = { v1 * cam.right(), v1 * cam.up(), v1 * cam.front() };
-        Vec3 c2 = { v2 * cam.right(), v2 * cam.up(), v2 * cam.front() };
-        Vec3 c3 = { v3 * cam.right(), v3 * cam.up(), v3 * cam.front() };
-
         const float d = 1000.0;
         if (c1.z < 0.15 || c2.z < 0.15 || c3.z < 0.15) continue;
         drawTriangleFilled((iVec2[]){ // - on the y because actual y coordinates are flipped
@@ -188,6 +196,7 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
             finalColor
         );
     }
+    printf("Drawn: %d\n", drawn);
 }
 
 void Renderer::drawShape(std::span<const Vec3> vertices, std::span<const int> indices, Color color) {

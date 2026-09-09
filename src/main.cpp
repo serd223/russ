@@ -18,7 +18,7 @@ int main(int argc, const char** argv) {
     for (int i = 1; i < argc; i++) {
         const char* obj_file_path = argv[i];
         Model model(obj_file_path);
-        model.scale = 10.0f;
+        model.scale = 15.0f;
         model.pos = position;
 
         model.recalculateNormals(); // because vertices are rotated
@@ -37,7 +37,7 @@ int main(int argc, const char** argv) {
     Model floor_model(vs, fs, 5.0f, {0.0f, 0.0f, 0.0f});
 
     SDL::SDL_Init(SDL_INIT_VIDEO);
-    Renderer render = Renderer("russ - dev", 800, 600);
+    Renderer render = Renderer("russ - dev", 1200, 900);
     SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, true); // grab and hide mouse cursor
     render.cam.pos.y = 80.;
     render.cam.rot(Vec3(
