@@ -3,7 +3,7 @@
 #include <cstring>
 #include <rmath.hpp>
 #include <math.h>
-#include <cstdio>
+#include <vector>
 
 Camera::Camera(Vec3 rot) {
     this->rot(rot);
@@ -46,16 +46,11 @@ Vec3 Camera::right() const {
 }
 
 bool Camera::draw(std::vector<Vec3>& vertices) {
-
     for (auto& v : vertices) {
         if (v.z <= m_near || v.z >= m_far) return false; // Near and far plane
-        v.x = v.x * ((m_far - v.z) / (m_far - m_near));
-        v.y = v.y * ((m_far - v.z) / (m_far - m_near));
-
         for (size_t i = 0; i < m_sn.size(); i++) {
             if (m_sn[i] * v > 0) return false;
         }
     }
-
     return true;
 }

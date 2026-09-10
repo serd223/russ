@@ -1,6 +1,6 @@
 #pragma once
-#include <vector>
 #include <array>
+#include <vector>
 
 /*
     Camera object, this is the POV of our Renderer. Camera's position in world coordinates,

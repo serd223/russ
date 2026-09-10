@@ -113,63 +113,60 @@ void Renderer::drawLine(Vec3 v1, Vec3 v2, Color color) {
 }
 
 void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
-    // printf("%f, %f %f\n", cam.rot().x, cam.rot().y, cam.rot().z);
     Vec3 position = model.pos - cam.pos;
-    // TODO: I think **some** piece of math here still implicitly expects
-    // cam.front to be (0, 0, -1) because something is still wrong with camera rotation
-
     Mat3x3 rot = Mat3x3::rotXYZ(model.rot());
 
-    static std::vector<Vec3> vertices; // leak
-    vertices.resize(model.vertices.size());
-    for (size_t i = 0; i < model.vertices.size(); i++) {
+    // Take each vertex and move it to camera space
+    static std::vector<Vec3> vertices;
+    vertices.reserve(model.vertices.size());
+    for (size_t i = 0; i < model.vertices.size();i++) {
         // Scale and offset vertices to world positions
         vertices[i] = ((rot * model.vertices[i]) * model.scale) + position;
+        vertices[i] = {vertices[i] * cam.right(), vertices[i] * cam.up(), vertices[i] * cam.front()};
     }
-    std::sort(model.faces.begin(), model.faces.end(), [this, model](const Face& a, const Face& b) {
-        Vec3 v1a = vertices[a.indices.a];
-        Vec3 v2a = vertices[a.indices.b];
-        Vec3 v3a = vertices[a.indices.c];
+
+    // Face culling
+    std::vector<Face> faces;
+    for (auto& face : model.faces) {
+        // Back-face culling
+        if ((face.normal * cam.front()) >= 0.0) continue;
+
+        Vec3 v1 = vertices[face.indices.a];
+        Vec3 v2 = vertices[face.indices.b];
+        Vec3 v3 = vertices[face.indices.c];
+
+        std::vector<Vec3> vecs = {v1, v2, v3};
+        // View Frustum culling
+        if (!cam.draw(vecs)) continue;
+        faces.push_back(face);
+    }
+
+    // Problematic part
+    std::sort(faces.begin(), faces.end(), [faces](const Face& a, const Face& b) {
         // We basically want to calculate the perpandicular distance from
         // the middle of the face to span(cam.right, cam.up). The correct
         // formula would be ((v1a + v2a + v3a)/3 * front)/|front| but since this is
         // purely for sorting we can drop /3 and the ordering will reamin
         // the same. And we can drop |front| because up,right,front are unit vectors.
-        float la = (v1a + v2a + v3a) * cam.front();
+        Vec3 v1a = vertices[a.indices.a];
+        Vec3 v2a = vertices[a.indices.b];
+        Vec3 v3a = vertices[a.indices.c];
+        float la = (v1a + v2a + v3a).z;
 
         Vec3 v1b = vertices[b.indices.a];
         Vec3 v2b = vertices[b.indices.b];
         Vec3 v3b = vertices[b.indices.c];
-        float lb = (v1b + v2b + v3b) * cam.front();
+        float lb = (v1b + v2b + v3b).z;
+
         return la > lb;
     });
 
-    // for (std::size_t i = model.faces.size() - 1; i > 0; i--) {
-    int drawn = 0;
-    for (std::size_t i = 0; i < model.faces.size(); i++) {
+    for (std::size_t i = 0; i < faces.size(); i++) {
+        Vec3 n = faces[i].normal;
 
-        Vec3 n  = model.faces[i].normal; // Rotation already applied
-
-        // n . front = |n|.|front|.cos(a), the sign of cos(a) tells us whether the
-        // two vectors are pointing in the same direction
-        // Back-face culling
-        if ((n * cam.front()) >= 0.0 ) continue;
-
-        Vec3 v1 = vertices[model.faces[i].indices.a];
-        Vec3 v2 = vertices[model.faces[i].indices.b];
-        Vec3 v3 = vertices[model.faces[i].indices.c];
-
-        // Final correct position of each vertex in relation to the camera
-        Vec3 c1 = { v1 * cam.right(), v1 * cam.up(), v1 * cam.front() };
-        Vec3 c2 = { v2 * cam.right(), v2 * cam.up(), v2 * cam.front() };
-        Vec3 c3 = { v3 * cam.right(), v3 * cam.up(), v3 * cam.front() }; 
-        
-        std::vector<Vec3> face = {c1, c2, c3};
-
-        // View frustum
-        if (!cam.draw(face)) continue;
-        drawn++;
-     
+        Vec3 v1 = vertices[faces[i].indices.a];
+        Vec3 v2 = vertices[faces[i].indices.b];
+        Vec3 v3 = vertices[faces[i].indices.c];
 
         Color finalColor = tint;
         if (doLighting) {
@@ -189,23 +186,15 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
             }
         }
 
-
-        /*
-            TODO : 
-            dx = v.x = v.x * ((far - v.z) / (far - near));
-            dy = v.y = v.y * ((far - v.z) / (far - near));
-            using far and near values from camera
-        */
         const float d = 1000.0;
         drawTriangleFilled((iVec2[]){ // - on the y because actual y coordinates are flipped
-                {(int)(c1.x / c1.z * d) + inner_surface->w / 2, -(int)(c1.y / c1.z * d) + inner_surface->h / 2},
-                {(int)(c2.x / c2.z * d) + inner_surface->w / 2, -(int)(c2.y / c2.z * d) + inner_surface->h / 2},
-                {(int)(c3.x / c3.z * d) + inner_surface->w / 2, -(int)(c3.y / c3.z * d) + inner_surface->h / 2}
+                {(int)(v1.x / v1.z * d) + inner_surface->w / 2, -(int)(v1.y / v1.z * d) + inner_surface->h / 2},
+                {(int)(v2.x / v2.z * d) + inner_surface->w / 2, -(int)(v2.y / v2.z * d) + inner_surface->h / 2},
+                {(int)(v3.x / v3.z * d) + inner_surface->w / 2, -(int)(v3.y / v3.z * d) + inner_surface->h / 2}
             },
             finalColor
         );
     }
-    printf("Drawn: %d\n", drawn);
 }
 
 void Renderer::drawShape(std::span<const Vec3> vertices, std::span<const int> indices, Color color) {
