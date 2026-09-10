@@ -152,18 +152,21 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
 
         // n . front = |n|.|front|.cos(a), the sign of cos(a) tells us whether the
         // two vectors are pointing in the same direction
-        if ((n * cam.front()) >= 0.0) continue;
+        // Back-face culling
+        if ((n * cam.front()) >= 0.0 ) continue;
 
         Vec3 v1 = vertices[model.faces[i].indices.a];
         Vec3 v2 = vertices[model.faces[i].indices.b];
         Vec3 v3 = vertices[model.faces[i].indices.c];
 
+        // Final correct position of each vertex in relation to the camera
         Vec3 c1 = { v1 * cam.right(), v1 * cam.up(), v1 * cam.front() };
         Vec3 c2 = { v2 * cam.right(), v2 * cam.up(), v2 * cam.front() };
-        Vec3 c3 = { v3 * cam.right(), v3 * cam.up(), v3 * cam.front() };
-
+        Vec3 c3 = { v3 * cam.right(), v3 * cam.up(), v3 * cam.front() }; 
+        
         std::vector<Vec3> face = {c1, c2, c3};
 
+        // View frustum
         if (!cam.draw(face)) continue;
         drawn++;
      
@@ -186,8 +189,14 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
             }
         }
 
+
+        /*
+            TODO : 
+            dx = v.x = v.x * ((far - v.z) / (far - near));
+            dy = v.y = v.y * ((far - v.z) / (far - near));
+            using far and near values from camera
+        */
         const float d = 1000.0;
-        if (c1.z < 0.15 || c2.z < 0.15 || c3.z < 0.15) continue;
         drawTriangleFilled((iVec2[]){ // - on the y because actual y coordinates are flipped
                 {(int)(c1.x / c1.z * d) + inner_surface->w / 2, -(int)(c1.y / c1.z * d) + inner_surface->h / 2},
                 {(int)(c2.x / c2.z * d) + inner_surface->w / 2, -(int)(c2.y / c2.z * d) + inner_surface->h / 2},

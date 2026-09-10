@@ -74,7 +74,7 @@ int main(int argc, const char** argv) {
                     dir.y = 0;
                 } else if (event.key.key == SDLK_S) {
                     dir.y = 0;
-                }
+                } 
             } else if (event.type == SDL::SDL_EVENT_KEY_DOWN) {
                 if (event.key.key == SDLK_ESCAPE) {
                     goto loop_end;

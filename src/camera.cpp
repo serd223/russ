@@ -3,14 +3,16 @@
 #include <cstring>
 #include <rmath.hpp>
 #include <math.h>
+#include <cstdio>
 
 Camera::Camera(Vec3 rot) {
     this->rot(rot);
-    const static float d = 5.0f;
-    m_sn[0] = {0,  d / sqrt(9 + d * d), -3 / sqrt(3 + d * d)};
-    m_sn[1] = {-d / sqrt(16 + d * d), 0, -4 / sqrt(16 + d *d )};
-    m_sn[2] = {0, -d / sqrt(9 + d * d), -3 / sqrt(9 + d * d)};
-    m_sn[3] = {d / sqrt(16 + d * d), 0, -4 / sqrt(16 + d *d )};
+
+    m_sn[0] = {0,  m_fc / sqrt(9 + m_fc * m_fc), -3 / sqrt(3 + m_fc * m_fc)};
+    m_sn[1] = {-m_fc / sqrt(16 + m_fc * m_fc), 0, -4 / sqrt(16 + m_fc *m_fc )};
+    m_sn[2] = {0, -m_fc / sqrt(9 + m_fc * m_fc), -3 / sqrt(9 + m_fc * m_fc)};
+    m_sn[3] = {m_fc / sqrt(16 + m_fc * m_fc), 0, -4 / sqrt(16 + m_fc *m_fc )};
+    
 }
 
 Vec3 Camera::rot() const {
@@ -45,15 +47,15 @@ Vec3 Camera::right() const {
 
 bool Camera::draw(std::vector<Vec3>& vertices) {
 
-    for (size_t i = 0; i < m_sn.size(); i++) {
-        Vec3 sn = m_sn[i];
-        sn = Mat3x3::rotXYZ(m_rot) * sn;
-        for (auto& v : vertices) {
-            if (m_sn[0] * v > 0) return false;
-            if (m_sn[1] * v > 0) return false;
-            if (m_sn[2] * v > 0) return false;
-            if (m_sn[3] * v > 0) return false;
+    for (auto& v : vertices) {
+        if (v.z <= m_near || v.z >= m_far) return false; // Near and far plane
+        v.x = v.x * ((m_far - v.z) / (m_far - m_near));
+        v.y = v.y * ((m_far - v.z) / (m_far - m_near));
+
+        for (size_t i = 0; i < m_sn.size(); i++) {
+            if (m_sn[i] * v > 0) return false;
         }
     }
+
     return true;
 }
