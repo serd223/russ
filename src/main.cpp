@@ -124,8 +124,6 @@ int main(int argc, const char** argv) {
             if (newCamRot.x >=  M_PI_2 - 0.001) newCamRot.x = M_PI_2 - 0.001;
             if (newCamRot.x <= -M_PI_2 + 0.001) newCamRot.x = -M_PI_2 + 0.001;
 
-            if (newCamRot.y >= M_PI) newCamRot.y = M_PI;
-            if (newCamRot.y <= -M_PI) newCamRot.y = -M_PI;
             render.cam.rot(newCamRot);
         }
 
