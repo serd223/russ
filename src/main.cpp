@@ -20,8 +20,6 @@ int main(int argc, const char** argv) {
         Model model(obj_file_path);
         model.scale = 15.0f;
         model.pos = position;
-
-        model.recalculateNormals(); // because vertices are rotated
         models.push_back(model);
     }
     const Vec3 vs[] = {
@@ -111,7 +109,7 @@ int main(int argc, const char** argv) {
             for (auto& model : models) {
                 model.rot({
                     model.rot().x - (float)(M_PI * delta) * mouseRel.y,
-                    model.rot().y - (float)(M_PI * delta) * mouseRel.x,
+                    model.rot().y + (float)(M_PI * delta) * mouseRel.x,
                     model.rot().z,
                 });
             }

@@ -117,7 +117,7 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
     Mat3x3 rot = Mat3x3::rotXYZ(model.rot());
 
     // Take each vertex and move it to camera space
-    static std::vector<Vec3> vertices;
+    static std::vector<Vec3> vertices; // leak
     vertices.reserve(model.vertices.size());
     for (size_t i = 0; i < model.vertices.size();i++) {
         // Scale and offset vertices to world positions
@@ -129,7 +129,10 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
     std::vector<Face> faces;
     for (auto& face : model.faces) {
         // Back-face culling
-        if ((face.normal * cam.front()) >= 0.0) continue;
+        float dot = face.normal * cam.front();
+        if (dot >= 0.54f) {
+            continue;
+        };
 
         Vec3 v1 = vertices[face.indices.a];
         Vec3 v2 = vertices[face.indices.b];

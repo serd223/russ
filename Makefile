@@ -10,9 +10,10 @@ CPPDEBUGFLAGS=-std=c++20 -Wall -Wextra -g -O0 -I$(shell pwd)/src $(shell pkg-con
 LIBS=$(shell pkg-config sdl3 --libs)
 
 SRCS=$(wildcard src/*.cpp)
+HEADERS=$(wildcard src/*.hpp)
 
 main: bin/main
-bin/main: $(SRCS)
+bin/main: $(SRCS) $(HEADERS)
 	$(CPPC) $(SRCS) $(CPPFLAGS) -o bin/main $(LIBS)
 
 debug: bin/debug
