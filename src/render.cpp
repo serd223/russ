@@ -116,28 +116,37 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
     Vec3 position = model.pos - cam.pos;
     Mat3x3 rot = Mat3x3::rotXYZ(model.rot());
 
+    // Don't move to camera space, just compute world coords relative to camera
+    static std::vector<Vec3> vertices_world; // leak
     // Take each vertex and move it to camera space
     static std::vector<Vec3> vertices; // leak
+    vertices_world.reserve(model.vertices.size());
     vertices.reserve(model.vertices.size());
     for (size_t i = 0; i < model.vertices.size();i++) {
         // Scale and offset vertices to world positions
-        vertices[i] = ((rot * model.vertices[i]) * model.scale) + position;
+        vertices_world[i] = ((rot * model.vertices[i]) * model.scale) + position;
+        vertices[i] = vertices_world[i];
         vertices[i] = {vertices[i] * cam.right(), vertices[i] * cam.up(), vertices[i] * cam.front()};
     }
 
     // Face culling
-    std::vector<Face> faces;
+    static std::vector<Face> faces; // leak
+    faces.clear();
     for (auto& face : model.faces) {
+        Vec3 v1 = vertices_world[face.indices.a];
+        Vec3 v2 = vertices_world[face.indices.b];
+        Vec3 v3 = vertices_world[face.indices.c];
+
         // Back-face culling
-        float dot = face.normal * cam.front();
-        if (dot >= 0.54f) {
+        // Check if the angle between the ray from the camera to the middle of the ray and the face normal are pointing in different directions
+        float dot = face.normal * (v1 + v2 + v3);
+        if (dot >= 0.0f) {
             continue;
         };
 
-        Vec3 v1 = vertices[face.indices.a];
-        Vec3 v2 = vertices[face.indices.b];
-        Vec3 v3 = vertices[face.indices.c];
-
+        v1 = vertices[face.indices.a];
+        v2 = vertices[face.indices.b];
+        v3 = vertices[face.indices.c];
         std::vector<Vec3> vecs = {v1, v2, v3};
         // View Frustum culling
         if (!cam.draw(vecs)) continue;
@@ -145,7 +154,7 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
     }
 
     // Problematic part
-    std::sort(faces.begin(), faces.end(), [faces](const Face& a, const Face& b) {
+    std::sort(faces.begin(), faces.end(), [](const Face& a, const Face& b) {
         // We basically want to calculate the perpandicular distance from
         // the middle of the face to span(cam.right, cam.up). The correct
         // formula would be ((v1a + v2a + v3a)/3 * front)/|front| but since this is
@@ -215,7 +224,8 @@ void Renderer::drawShape(std::span<const Vec3> vertices, std::span<const int> in
 }
 
 static std::vector<iVec2> _interpolate(iVec2& v0, iVec2& v1, int w, int h) {
-    std::vector<iVec2> out;
+    static std::vector<iVec2> out; // leak
+    out.clear();
     for (int i = v0.y; i < v1.y; i++) {
         float o = (float)((i - v0.y) * (v1.x - v0.x)) / (float)(v1.y - v0.y) + v0.x;
         int ox = static_cast<int>(round(o));
