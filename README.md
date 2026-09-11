@@ -12,6 +12,7 @@
 ```
 
 Press 'Escape' to quit.
+Press 'G' to toggle cursor grab.
 Press 'Space' to print current frame time and FPS information.
 Move mouse to rotate the camera around.
 Use WASD to move.

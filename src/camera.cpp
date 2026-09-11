@@ -1,6 +1,4 @@
 #include <camera.hpp>
-#include <cmath>
-#include <cstring>
 #include <rmath.hpp>
 #include <math.h>
 #include <vector>

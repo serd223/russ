@@ -1,9 +1,10 @@
-#include "camera.hpp"
-#include <string.h>
+#include <camera.hpp>
 #include <math.h>
 #include <stdio.h>
 #include <rmath.hpp>
 #include <render.hpp> // Includes camera.hpp and model.hpp
+
+#define KEYS_MAX_KEY SDLK_UP
 
 int main(int argc, const char** argv) {
     if (argc < 2) {
@@ -20,23 +21,32 @@ int main(int argc, const char** argv) {
         Model model(obj_file_path);
         model.scale = 15.0f;
         model.pos = position;
+        if (i == 1) {
+            model.color = {255, 0, 0, 255};
+        } else {
+            model.color = {0, 255, 0, 255};
+        }
         models.push_back(model);
     }
-    const Vec3 vs[] = {
-        {-5.0f,-5.0f,-55.0f},
-        { 5.0f,-5.0f,-55.0f},
-        {-5.0f,-5.0f,-65.0f},
-        { 5.0f,-5.0f,-65.0f}
-    };
-    const Face fs[] = {
-        {{0, 1, 2}, {}},
-        {{1, 3, 2}, {}}
-    };
-    Model floor_model(vs, fs, 5.0f, {0.0f, 0.0f, 0.0f});
-
+    {
+        const Vec3 vs[] = {
+            {-5.0f,-5.0f,-55.0f},
+            { 5.0f,-5.0f,-55.0f},
+            {-5.0f,-5.0f,-65.0f},
+            { 5.0f,-5.0f,-65.0f}
+        };
+        const Face fs[] = {
+            {{0, 1, 2}, {}},
+            {{1, 3, 2}, {}}
+        };
+        Model floor_model(vs, fs, 5.0f, {0.0f, 0.0f, 0.0f});
+        floor_model.color = {0, 0, 255, 255};
+        models.push_back(floor_model);
+    }
     SDL::SDL_Init(SDL_INIT_VIDEO);
     Renderer render = Renderer("russ - dev", 1200, 900);
-    SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, true); // grab and hide mouse cursor
+    bool mouse_hide = false, mouse_hide_override = true;
+    SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, mouse_hide); // grab and hide mouse cursor
     render.cam.pos.y = 80.;
     render.cam.rot(Vec3(
         -M_PI_4 / 3.0,
@@ -45,12 +55,13 @@ int main(int argc, const char** argv) {
     ));
     bool isMouseLeftDown = false;
     Vec2 mouseRel;
-    iVec2 dir = {0, 0};
 
     SDL::Uint32 now = SDL::SDL_GetPerformanceCounter();
     SDL::Uint32 last;
     double delta;
 
+    std::vector<bool> keys;
+    keys.resize(KEYS_MAX_KEY + 1);
     SDL::SDL_Event event;
     for (;;) {
         last = now;
@@ -62,58 +73,54 @@ int main(int argc, const char** argv) {
         while (SDL::SDL_PollEvent(&event)) {
             if (event.type == SDL::SDL_EVENT_QUIT) goto loop_end;
             else if (event.type == SDL::SDL_EVENT_KEY_UP) {
+                if (event.key.key <= KEYS_MAX_KEY) {
+                    keys[event.key.key] = false;
+                }
                 if (event.key.key == SDLK_SPACE) {
                     printf("Frame Time: %.3fms, FPS: %.3f\n", delta * 1000.0, 1.0 / delta);
-                } else if (event.key.key == SDLK_A) {
-                    dir.x = 0;
-                } else if (event.key.key == SDLK_D) {
-                    dir.x = 0;
-                } else if (event.key.key == SDLK_W) {
-                    dir.y = 0;
-                } else if (event.key.key == SDLK_S) {
-                    dir.y = 0;
-                } 
+                }
             } else if (event.type == SDL::SDL_EVENT_KEY_DOWN) {
+                if (event.key.key <= KEYS_MAX_KEY) {
+                    keys[event.key.key] = true;
+                }
                 if (event.key.key == SDLK_ESCAPE) {
                     goto loop_end;
-                } else if (event.key.key == SDLK_A) {
-                    dir.x = -1;
-                } else if (event.key.key == SDLK_D) {
-                    dir.x = 1;
-                } else if (event.key.key == SDLK_W) {
-                    dir.y = -1;
-                } else if (event.key.key == SDLK_S) {
-                    dir.y = 1;
+                } else if (event.key.key == SDLK_G) {
+                    mouse_hide = !mouse_hide;
+                    mouse_hide_override = !mouse_hide_override;
+                    SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, mouse_hide);
                 }
             } else if (event.type == SDL::SDL_EVENT_MOUSE_BUTTON_DOWN) {
                 if (event.button.button == SDL_BUTTON_LEFT) {
-                    SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, false);
+                    if (!mouse_hide_override) {
+                        mouse_hide = false;
+                        SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, mouse_hide);
+                    }
                     isMouseLeftDown = true;
                 }
             } else if (event.type == SDL::SDL_EVENT_MOUSE_BUTTON_UP) {
                 if (event.button.button == SDL_BUTTON_LEFT) {
-                    SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, true);
+                    if (!mouse_hide_override) {
+                        mouse_hide = true;
+                        SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, mouse_hide);
+                    }
                     isMouseLeftDown = false;
                 }
             } else if (event.type == SDL::SDL_EVENT_MOUSE_MOTION) {
                 mouseRel.x = event.motion.xrel;
                 mouseRel.y = event.motion.yrel;
             } else if (event.type == SDL::SDL_EVENT_MOUSE_WHEEL) {
-                for (auto& model : models) {
-                    model.scale += event.wheel.y * delta * 100.0f;
-                }
+                models[0].scale += event.wheel.y * delta * 100.0f;
             }
         }
 
         if (isMouseLeftDown) {
-            for (auto& model : models) {
-                model.rot({
-                    model.rot().x - (float)(M_PI * delta) * mouseRel.y,
-                    model.rot().y + (float)(M_PI * delta) * mouseRel.x,
-                    model.rot().z,
-                });
-            }
-        } else {
+            models[0].rot({
+                models[0].rot().x - (float)(M_PI * delta) * mouseRel.y,
+                models[0].rot().y + (float)(M_PI * delta) * mouseRel.x,
+                models[0].rot().z,
+            });
+        } else if (mouse_hide) {
             Vec3 newCamRot = {
                 render.cam.rot().x - (float)(M_PI_4 * delta) * mouseRel.y,
                 render.cam.rot().y + (float)(M_PI_4 * delta) * mouseRel.x,
@@ -125,11 +132,27 @@ int main(int argc, const char** argv) {
             render.cam.rot(newCamRot);
         }
 
-        render.cam.pos = render.cam.pos - 60.0 * delta * (float)dir.y * render.cam.front();
-        render.cam.pos = render.cam.pos + 60.0 * delta * (float)dir.x * render.cam.right();
-
+        {
+            int df = 0;
+            int dr = 0;
+            if (keys[SDLK_W]) df -= 1;
+            if (keys[SDLK_A]) dr -= 1;
+            if (keys[SDLK_S]) df += 1;
+            if (keys[SDLK_D]) dr += 1;
+            render.cam.pos = render.cam.pos - 60.0 * delta * (float)df * render.cam.front();
+            render.cam.pos = render.cam.pos + 60.0 * delta * (float)dr * render.cam.right();
+        }
+        {
+            int df = 0;
+            int dr = 0;
+            if (keys[SDLK_UP]) df -= 1;
+            if (keys[SDLK_LEFT]) dr -= 1;
+            if (keys[SDLK_DOWN]) df += 1;
+            if (keys[SDLK_RIGHT]) dr += 1;
+            models[0].pos = models[0].pos - 60.0 * delta * (float)df * render.cam.front();
+            models[0].pos = models[0].pos + 60.0 * delta * (float)dr * render.cam.right();
+        }
         render.clear({40, 44, 52, 255});
-        render.drawModel(floor_model, {0,0,128,255}, false);
         for (size_t i = 0; i < models.size(); i++) {
             render.drawModel(models[i], {255, 0, 0, 255});
         }

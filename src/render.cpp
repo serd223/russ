@@ -1,7 +1,6 @@
 #include "rmath.hpp"
 #include <algorithm>
 #include <math.h>
-#include <cstdio>
 #include <span>
 #include <stdio.h>
 #include <vector>
@@ -10,18 +9,83 @@ namespace SDL {
     #include <SDL3/SDL.h>
 }
 
-#include <model.hpp>
 #include <render.hpp>
 
 typedef SDL::SDL_Color Color;
 
-static void _writePixel(SDL::SDL_Surface* surface, int x, int y, Color color) {
-    if (x >= 0 && x < surface->w && y >= 0 && y < surface->h) {
-        SDL::SDL_WriteSurfacePixel(surface, x, y, color.r, color.g, color.b, color.a);
+Model::Model(const char* obj_file_path) {
+    FILE* f = fopen(obj_file_path, "r");
+    if (f == NULL) {
+        printf("[ERROR] Couldn't open file '%s': %s\n", obj_file_path, strerror(errno));
+        throw;
+    }
+
+    printf("Loading object from file '%s'...\n", obj_file_path);
+
+    float x, y, z;
+    while (fscanf(f, "v %f %f %f\n", &x, &y, &z) >= 3) {
+        vertices.push_back({x, y, z});
+    };
+
+    int a, b, c;
+    while (fscanf(f, "f %d %d %d\n", &a, &b, &c) >= 3) {
+        Vec3 v1 = vertices[a-1], v2 = vertices[b-1], v3 = vertices[c-1];
+        Vec3 l1 = v2 - v1, l2 = v3 - v1;
+        faces.push_back({.indices = {a - 1, b - 1, c - 1}, .normal = l1.cross(l2).normalize()});
+    };
+
+    printf("Succesfully loaded %lu vertices and %lu faces from file '%s'.\n", vertices.size(), faces.size(), obj_file_path);
+}
+
+Model::Model(std::span<const Vec3> vertices, std::span<const Face> faces, float scale, Vec3 pos) {
+    this->vertices = std::vector(vertices.begin(), vertices.end());
+    this->faces = std::vector(faces.begin(), faces.end());
+    this->scale = scale;
+    this->pos = pos;
+    m_rot = {0,0,0};
+    recalculateNormals();
+}
+
+void Model::recalculateNormals() {
+    for (size_t i = 0; i < faces.size(); i++) {
+        Vec3 v1 = vertices[faces[i].indices.a];
+        Vec3 v2 = vertices[faces[i].indices.b];
+        Vec3 v3 = vertices[faces[i].indices.c];
+        Vec3 l1 = v2 - v1, l2 = v3 - v1;
+        faces[i].normal = Mat3x3::rotXYZ(m_rot) * l1.cross(l2).normalize();
     }
 }
 
-static void _drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, Color color) {
+Vec3 Model::rot() const {
+    return this->m_rot;
+}
+
+void Model::rot(Vec3 rot) {
+    this->m_rot = rot;
+    recalculateNormals();
+}
+
+void Model::rotX(float angle) {
+    this->m_rot.x = angle;
+    recalculateNormals();
+}
+
+void Model::rotY(float angle) {
+    this->m_rot.y = angle;
+    recalculateNormals();
+}
+
+void Model::rotZ(float angle) {
+    this->m_rot.z = angle;
+    recalculateNormals();
+}static void _writePixel(Renderer* render, int x, int y, float z_depth, Color color) {
+    if (x >= 0 && x < render->inner_surface->w && y >= 0 && y < render->inner_surface->h && z_depth < render->z_at(x, y)) {
+        render->z_set(x, y, z_depth);
+        SDL::SDL_WriteSurfacePixel(render->inner_surface, x, y, color.r, color.g, color.b, color.a);
+    }
+}
+
+static void _drawLineHigh(Renderer* render, int x0, int x1, int y0, int y1, float z0, float z1, Color color) {
     int dx = x1 - x0;
     int dy = y1 - y0;
     int xi = 1;
@@ -33,7 +97,8 @@ static void _drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int
     int x = x0;
 
     for (int y = y0; y <= y1; y++) {
-        _writePixel(surface, x, y, color);
+        float t = ((float)(y - y0))/((float)(y1 - y0));
+        _writePixel(render, x, y, z0 + (z1 - z0) * t, color);
         if (D > 0) {
             x += xi;
             D += (2 * (dx - dy));
@@ -43,7 +108,7 @@ static void _drawLineHigh(SDL::SDL_Surface* surface, int x0, int x1, int y0, int
     }
 }
 
-static void _drawLineLow(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, Color color) {
+static void _drawLineLow(Renderer* render, int x0, int x1, int y0, int y1, float z0, float z1, Color color) {
 
     int dx = x1 - x0;
     int dy = y1 - y0;
@@ -55,8 +120,10 @@ static void _drawLineLow(SDL::SDL_Surface* surface, int x0, int x1, int y0, int 
     int D = (2 * dy) - dx;
     int y = y0;
 
+    // x - x0 / x1 - x0
     for (int x = x0; x <= x1; x++) {
-        _writePixel(surface, x, y, color);
+        float t = ((float)(x - x0))/((float)(x1 - x0));
+        _writePixel(render, x, y, z0 + (z1 - z0) * t, color);
         if (D > 0) {
             y += yi;
             D += (2 * (dy - dx));
@@ -66,18 +133,18 @@ static void _drawLineLow(SDL::SDL_Surface* surface, int x0, int x1, int y0, int 
     }
 }
 
-static void _drawLine(SDL::SDL_Surface* surface, int x0, int x1, int y0, int y1, Color color) {
+static void _drawLine(Renderer* render, int x0, int x1, int y0, int y1, float z0, float z1, Color color) {
     if (abs(y1 - y0) < abs(x1 - x0)) {
         if (x0 > x1) {
-            _drawLineLow(surface, x1, x0, y1, y0, color);
+            _drawLineLow(render, x1, x0, y1, y0, z1, z0, color);
         } else {
-            _drawLineLow(surface, x0, x1, y0, y1, color);
+            _drawLineLow(render, x0, x1, y0, y1, z0, z1, color);
         }
     } else {
         if (y0 > y1) {
-            _drawLineHigh(surface, x1, x0, y1, y0, color);
+            _drawLineHigh(render, x1, x0, y1, y0, z1, z0, color);
         } else {
-            _drawLineHigh(surface, x0, x1, y0, y1, color);
+            _drawLineHigh(render, x0, x1, y0, y1, z0, z1, color);
         }
     }
 }
@@ -93,23 +160,29 @@ Renderer::Renderer(const char* title, int w, int h) {
         fprintf(stderr, "[ERROR] Couldn't create surface: %s\n", SDL::SDL_GetError());
         throw;
     }
+    m_z_buffer.resize(w * h);
+    for (size_t i = 0; i < (size_t)(w * h); i++) {
+        m_z_buffer[i] = MAXFLOAT;
+    }
+    m_z_buffer_stride = w;
 }
 
 Renderer::~Renderer() {
         SDL::SDL_DestroyWindow(inner_window);
 }
+float Renderer::z_at(int x, int y) {
+    return m_z_buffer[y * m_z_buffer_stride + x];
+}
 
+float Renderer::z_set(int x, int y, float z) {
+    return m_z_buffer[y * m_z_buffer_stride + x] = z;
+}
 void Renderer::clear(Color color) {
     // TODO: error checking
     SDL::SDL_ClearSurface(inner_surface, (float)color.r / 255.0f, (float)color.g / 255.0f, (float)color.b / 255.0f, (float)color.a / 255.0f);
-}
-
-void Renderer::drawLine(int x0, int x1, int y0, int y1, Color color) {
-    _drawLine(inner_surface, x0, x1, y0, y1, color);
-}
-
-void Renderer::drawLine(Vec3 v1, Vec3 v2, Color color) {
-    drawLine((int)v1.x, (int)v2.x, (int)v1.y, (int)v2.y, color);
+    for (auto& f : m_z_buffer) {
+        f = MAXFLOAT;
+    }
 }
 
 void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
@@ -117,9 +190,9 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
     Mat3x3 rot = Mat3x3::rotXYZ(model.rot());
 
     // Don't move to camera space, just compute world coords relative to camera
-    static std::vector<Vec3> vertices_world; // leak
+    thread_local std::vector<Vec3> vertices_world; // leak
     // Take each vertex and move it to camera space
-    static std::vector<Vec3> vertices; // leak
+    thread_local std::vector<Vec3> vertices; // leak
     vertices_world.reserve(model.vertices.size());
     vertices.reserve(model.vertices.size());
     for (size_t i = 0; i < model.vertices.size();i++) {
@@ -130,7 +203,7 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
     }
 
     // Face culling
-    static std::vector<Face> faces; // leak
+    thread_local std::vector<Face> faces; // leak
     faces.clear();
     for (auto& face : model.faces) {
         Vec3 v1 = vertices_world[face.indices.a];
@@ -153,26 +226,6 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         faces.push_back(face);
     }
 
-    // Problematic part
-    std::sort(faces.begin(), faces.end(), [](const Face& a, const Face& b) {
-        // We basically want to calculate the perpandicular distance from
-        // the middle of the face to span(cam.right, cam.up). The correct
-        // formula would be ((v1a + v2a + v3a)/3 * front)/|front| but since this is
-        // purely for sorting we can drop /3 and the ordering will reamin
-        // the same. And we can drop |front| because up,right,front are unit vectors.
-        Vec3 v1a = vertices[a.indices.a];
-        Vec3 v2a = vertices[a.indices.b];
-        Vec3 v3a = vertices[a.indices.c];
-        float la = (v1a + v2a + v3a).z;
-
-        Vec3 v1b = vertices[b.indices.a];
-        Vec3 v2b = vertices[b.indices.b];
-        Vec3 v3b = vertices[b.indices.c];
-        float lb = (v1b + v2b + v3b).z;
-
-        return la > lb;
-    });
-
     for (std::size_t i = 0; i < faces.size(); i++) {
         Vec3 n = faces[i].normal;
 
@@ -180,7 +233,8 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         Vec3 v2 = vertices[faces[i].indices.b];
         Vec3 v3 = vertices[faces[i].indices.c];
 
-        Color finalColor = tint;
+        (void)tint;
+        Color finalColor = model.color;
         if (doLighting) {
             // Fake lighting
             const float nMax = 0.65;
@@ -199,61 +253,47 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         }
 
         const float d = 1000.0;
-        drawTriangleFilled((iVec2[]){ // - on the y because actual y coordinates are flipped
-                {(int)(v1.x / v1.z * d) + inner_surface->w / 2, -(int)(v1.y / v1.z * d) + inner_surface->h / 2},
-                {(int)(v2.x / v2.z * d) + inner_surface->w / 2, -(int)(v2.y / v2.z * d) + inner_surface->h / 2},
-                {(int)(v3.x / v3.z * d) + inner_surface->w / 2, -(int)(v3.y / v3.z * d) + inner_surface->h / 2}
+        drawTriangleFilled((Point[]){ // - on the y because actual y coordinates are flipped
+                {(int)(v1.x / v1.z * d) + inner_surface->w / 2, -(int)(v1.y / v1.z * d) + inner_surface->h / 2, v1.z},
+                {(int)(v2.x / v2.z * d) + inner_surface->w / 2, -(int)(v2.y / v2.z * d) + inner_surface->h / 2, v2.z},
+                {(int)(v3.x / v3.z * d) + inner_surface->w / 2, -(int)(v3.y / v3.z * d) + inner_surface->h / 2, v3.z}
             },
             finalColor
         );
     }
 }
 
-void Renderer::drawShape(std::span<const Vec3> vertices, std::span<const int> indices, Color color) {
-    for (std::size_t i = 0; i < indices.size() - 1; i++) {
-        Vec3 vec1 = vertices[indices[i]];
-        Vec3 vec2 = vertices[indices[i + 1]];
-        drawLine(
-            (int)(vec1.x * 50.0f + 200.0f),
-            (int)(vec2.x * 50.0f + 200.0f),
-            (int)(vec1.y * 50.0f + 200.0f),
-            (int)(vec2.y * 50.0f + 200.0f),
-            color
-        );
-    }
-}
-
-static std::vector<iVec2> _interpolate(iVec2& v0, iVec2& v1, int w, int h) {
-    static std::vector<iVec2> out; // leak
-    out.clear();
+static std::vector<Point> _interpolate(Point& v0, Point& v1, int w, int h) {
+    std::vector<Point> out;
     for (int i = v0.y; i < v1.y; i++) {
         float o = (float)((i - v0.y) * (v1.x - v0.x)) / (float)(v1.y - v0.y) + v0.x;
         int ox = static_cast<int>(round(o));
+        float z = (float)((i - v0.y) * (v1.z - v0.z)) / (float)(v1.y - v0.y) + v0.z;
         iVec2 v{ox, i};
         if (v.x < 0) v.x = 0;
         if (v.x > w) v.x = w;
         if (v.y < 0) v.y = 0;
         if (v.y > h) v.y = h;
-        out.push_back(v);
+        out.push_back(Point{ox, i, z});
     }
     return out;
 }
 
-void Renderer::drawTriangleFilled(std::span<const iVec2, 3> vertex, Color color) {
+void Renderer::drawTriangleFilled(std::span<const Point, 3> vertex, Color color) {
     // Accept vertices as span view and copy them to internal buffer
-    iVec2 vertices[3] = {vertex[0], vertex[1], vertex[2]};
+    Point vertices[3] = {vertex[0], vertex[1], vertex[2]};
     if (vertices[1].y < vertices[0].y) std::swap(vertices[1], vertices[0]);
     if (vertices[2].y < vertices[0].y) std::swap(vertices[2], vertices[0]);
     if (vertices[2].y < vertices[1].y) std::swap(vertices[2], vertices[1]); // v2y > v1y > v0y
 
-    std::vector<iVec2> l02 = _interpolate(vertices[0], vertices[2], inner_surface->w, inner_surface->h);
-    std::vector<iVec2> l01 = _interpolate(vertices[0], vertices[1], inner_surface->w, inner_surface->h);
-    std::vector<iVec2> l12 = _interpolate(vertices[1], vertices[2], inner_surface->w, inner_surface->h);
+    std::vector<Point> l02 = _interpolate(vertices[0], vertices[2], inner_surface->w, inner_surface->h);
+    std::vector<Point> l01 = _interpolate(vertices[0], vertices[1], inner_surface->w, inner_surface->h);
+    std::vector<Point> l12 = _interpolate(vertices[1], vertices[2], inner_surface->w, inner_surface->h);
 
     l01.insert(l01.end(), l12.begin(), l12.end());
     
     for (size_t i = 0; i < l02.size(); i++) {
-        _drawLine(inner_surface, l02[i].x, l01[i].x, l02[i].y, l01[i].y, color);
+        _drawLine(this, l02[i].x, l01[i].x, l02[i].y, l01[i].y, l02[i].z, l01[i].z, color);
     }
 }
 
