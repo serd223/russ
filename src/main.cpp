@@ -4,7 +4,13 @@
 #include <rmath.hpp>
 #include <render.hpp> // Includes camera.hpp and model.hpp
 
-#define KEYS_MAX_KEY SDLK_UP
+typedef enum {
+    KEY_UP = 'Z' + 1,
+    KEY_DOWN,
+    KEY_LEFT,
+    KEY_RIGHT,
+    KEYS_COUNT
+} RussKey;
 
 int main(int argc, const char** argv) {
     if (argc < 2) {
@@ -61,7 +67,7 @@ int main(int argc, const char** argv) {
     double delta;
 
     std::vector<bool> keys;
-    keys.resize(KEYS_MAX_KEY + 1);
+    keys.resize(KEYS_COUNT);
     SDL::SDL_Event event;
     for (;;) {
         last = now;
@@ -73,22 +79,37 @@ int main(int argc, const char** argv) {
         while (SDL::SDL_PollEvent(&event)) {
             if (event.type == SDL::SDL_EVENT_QUIT) goto loop_end;
             else if (event.type == SDL::SDL_EVENT_KEY_UP) {
-                if (event.key.key <= KEYS_MAX_KEY) {
-                    keys[event.key.key] = false;
+                if (SDLK_A <= event.key.key && event.key.key <= SDLK_Z) {
+                    keys[event.key.key - SDLK_A + 'A'] = false;
                 }
-                if (event.key.key == SDLK_SPACE) {
+                switch (event.key.key) {
+                case SDLK_UP: keys[KEY_UP] = false; break;
+                case SDLK_DOWN: keys[KEY_DOWN] = false; break;
+                case SDLK_LEFT: keys[KEY_LEFT] = false; break;
+                case SDLK_RIGHT: keys[KEY_RIGHT] = false; break;
+                case SDLK_SPACE: {
                     printf("Frame Time: %.3fms, FPS: %.3f\n", delta * 1000.0, 1.0 / delta);
+                } break;
+                default: break;
                 }
             } else if (event.type == SDL::SDL_EVENT_KEY_DOWN) {
-                if (event.key.key <= KEYS_MAX_KEY) {
-                    keys[event.key.key] = true;
+                if (SDLK_A <= event.key.key && event.key.key <= SDLK_Z) {
+                    keys[event.key.key - SDLK_A + 'A'] = true;
                 }
-                if (event.key.key == SDLK_ESCAPE) {
+                switch (event.key.key) {
+                case SDLK_UP: keys[KEY_UP] = true; break;
+                case SDLK_DOWN: keys[KEY_DOWN] = true; break;
+                case SDLK_LEFT: keys[KEY_LEFT] = true; break;
+                case SDLK_RIGHT: keys[KEY_RIGHT] = true; break;
+                case SDLK_ESCAPE: {
                     goto loop_end;
-                } else if (event.key.key == SDLK_G) {
+                } break;
+                case SDLK_G: {
                     mouse_hide = !mouse_hide;
                     mouse_hide_override = !mouse_hide_override;
                     SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, mouse_hide);
+                } break;
+                default: break;
                 }
             } else if (event.type == SDL::SDL_EVENT_MOUSE_BUTTON_DOWN) {
                 if (event.button.button == SDL_BUTTON_LEFT) {
@@ -135,20 +156,20 @@ int main(int argc, const char** argv) {
         {
             int df = 0;
             int dr = 0;
-            if (keys[SDLK_W]) df -= 1;
-            if (keys[SDLK_A]) dr -= 1;
-            if (keys[SDLK_S]) df += 1;
-            if (keys[SDLK_D]) dr += 1;
+            if (keys['W']) df -= 1;
+            if (keys['A']) dr -= 1;
+            if (keys['S']) df += 1;
+            if (keys['D']) dr += 1;
             render.cam.pos = render.cam.pos - 60.0 * delta * (float)df * render.cam.front();
             render.cam.pos = render.cam.pos + 60.0 * delta * (float)dr * render.cam.right();
         }
         {
             int df = 0;
             int dr = 0;
-            if (keys[SDLK_UP]) df -= 1;
-            if (keys[SDLK_LEFT]) dr -= 1;
-            if (keys[SDLK_DOWN]) df += 1;
-            if (keys[SDLK_RIGHT]) dr += 1;
+            if (keys[KEY_UP]) df -= 1;
+            if (keys[KEY_LEFT]) dr -= 1;
+            if (keys[KEY_DOWN]) df += 1;
+            if (keys[KEY_RIGHT]) dr += 1;
             models[0].pos = models[0].pos - 60.0 * delta * (float)df * render.cam.front();
             models[0].pos = models[0].pos + 60.0 * delta * (float)dr * render.cam.right();
         }
