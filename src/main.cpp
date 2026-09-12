@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <rmath.hpp>
-#include <render.hpp> // Includes camera.hpp and model.hpp
+#include <render.hpp>
 
 typedef enum {
     KEY_UP = 'Z' + 1,

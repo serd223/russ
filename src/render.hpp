@@ -5,12 +5,13 @@
     - Handles SDL window creation and manages drawable surface
 */
 
-#include <rmath.hpp>
 #include <span>
 namespace SDL {
     #include <SDL3/SDL.h>
 }
+
 #include <camera.hpp>
+#include <rmath.hpp>
 
 typedef SDL::SDL_Color Color;
 
@@ -63,7 +64,7 @@ class Renderer {
     ~Renderer();
     void clear(Color color);
     void drawModel(Model& model, Color tint, bool doLighting = true);
-    void drawTriangleFilled(std::span<const Point, 3> vertex, Color color);
+    void drawTriangleFilled(const Point& vertex0, const Point& vertex1, const Point& vertex2, Color color);
     float z_at(int x, int y);
     float z_set(int x, int y, float z);
     private:

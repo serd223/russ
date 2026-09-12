@@ -1,4 +1,5 @@
-#include "rmath.hpp"
+#include <errno.h>
+#include <string.h>
 #include <algorithm>
 #include <math.h>
 #include <span>
@@ -9,6 +10,7 @@ namespace SDL {
     #include <SDL3/SDL.h>
 }
 
+#include <rmath.hpp>
 #include <render.hpp>
 
 typedef SDL::SDL_Color Color;
@@ -253,47 +255,46 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         }
 
         const float d = 1000.0;
-        drawTriangleFilled((Point[]){ // - on the y because actual y coordinates are flipped
-                {(int)(v1.x / v1.z * d) + inner_surface->w / 2, -(int)(v1.y / v1.z * d) + inner_surface->h / 2, v1.z},
-                {(int)(v2.x / v2.z * d) + inner_surface->w / 2, -(int)(v2.y / v2.z * d) + inner_surface->h / 2, v2.z},
-                {(int)(v3.x / v3.z * d) + inner_surface->w / 2, -(int)(v3.y / v3.z * d) + inner_surface->h / 2, v3.z}
-            },
+        drawTriangleFilled( // - on the y because actual y coordinates are flipped
+            {(int)(v1.x / v1.z * d) + inner_surface->w / 2, -(int)(v1.y / v1.z * d) + inner_surface->h / 2, v1.z},
+            {(int)(v2.x / v2.z * d) + inner_surface->w / 2, -(int)(v2.y / v2.z * d) + inner_surface->h / 2, v2.z},
+            {(int)(v3.x / v3.z * d) + inner_surface->w / 2, -(int)(v3.y / v3.z * d) + inner_surface->h / 2, v3.z},
             finalColor
         );
     }
 }
 
-static std::vector<Point> _interpolate(Point& v0, Point& v1, int w, int h) {
-    std::vector<Point> out;
-    for (int i = v0.y; i < v1.y; i++) {
-        float o = (float)((i - v0.y) * (v1.x - v0.x)) / (float)(v1.y - v0.y) + v0.x;
-        int ox = static_cast<int>(round(o));
-        float z = (float)((i - v0.y) * (v1.z - v0.z)) / (float)(v1.y - v0.y) + v0.z;
-        iVec2 v{ox, i};
-        if (v.x < 0) v.x = 0;
-        if (v.x > w) v.x = w;
-        if (v.y < 0) v.y = 0;
-        if (v.y > h) v.y = h;
-        out.push_back(Point{ox, i, z});
-    }
-    return out;
-}
-
-void Renderer::drawTriangleFilled(std::span<const Point, 3> vertex, Color color) {
-    // Accept vertices as span view and copy them to internal buffer
-    Point vertices[3] = {vertex[0], vertex[1], vertex[2]};
+void Renderer::drawTriangleFilled(const Point& vertex0, const Point& vertex1, const Point& vertex2, Color color) {
+    Point vertices[3] = {vertex0, vertex1, vertex2};
     if (vertices[1].y < vertices[0].y) std::swap(vertices[1], vertices[0]);
     if (vertices[2].y < vertices[0].y) std::swap(vertices[2], vertices[0]);
     if (vertices[2].y < vertices[1].y) std::swap(vertices[2], vertices[1]); // v2y > v1y > v0y
 
-    std::vector<Point> l02 = _interpolate(vertices[0], vertices[2], inner_surface->w, inner_surface->h);
-    std::vector<Point> l01 = _interpolate(vertices[0], vertices[1], inner_surface->w, inner_surface->h);
-    std::vector<Point> l12 = _interpolate(vertices[1], vertices[2], inner_surface->w, inner_surface->h);
+    float l02_inverse_y_dist = 1.0 / (float)(vertices[2].y - vertices[0].y);
+    float l02_x_t = (float)(vertices[2].x - vertices[0].x) * l02_inverse_y_dist;
+    float l02_z_t = (float)(vertices[2].z - vertices[0].z) * l02_inverse_y_dist;
 
-    l01.insert(l01.end(), l12.begin(), l12.end());
-    
-    for (size_t i = 0; i < l02.size(); i++) {
-        _drawLine(this, l02[i].x, l01[i].x, l02[i].y, l01[i].y, l02[i].z, l01[i].z, color);
+    float l01_inverse_y_dist = 1.0 / (float)(vertices[1].y - vertices[0].y);
+    float l01_x_t = (float)(vertices[1].x - vertices[0].x) * l01_inverse_y_dist;
+    float l01_z_t = (float)(vertices[1].z - vertices[0].z) * l01_inverse_y_dist;
+
+    float l12_inverse_y_dist = 1.0 / (float)(vertices[2].y - vertices[1].y);
+    float l12_x_t = (float)(vertices[2].x - vertices[1].x) * l12_inverse_y_dist;
+    float l12_z_t = (float)(vertices[2].z - vertices[1].z) * l12_inverse_y_dist;
+
+    for (int y = vertices[0].y; y < vertices[1].y; y++) {
+        int l02x = static_cast<int>((y - vertices[0].y) * l02_x_t + vertices[0].x);
+        float l02z = (y - vertices[0].y) * l02_z_t + vertices[0].z;
+        int l01x = static_cast<int>((y - vertices[0].y) * l01_x_t + vertices[0].x);
+        float l01z = (y - vertices[0].y) * l01_z_t + vertices[0].z;
+        _drawLine(this, l02x, l01x, y, y, l02z, l01z, color);
+    }
+    for (int y = vertices[1].y; y < vertices[2].y; y++) {
+        int l02x = static_cast<int>((y - vertices[0].y) * l02_x_t + vertices[0].x);
+        float l02z = (y - vertices[0].y) * l02_z_t + vertices[0].z;
+        int l12x = static_cast<int>((y - vertices[1].y) * l12_x_t + vertices[1].x);
+        float l12z = (y - vertices[1].y) * l12_z_t + vertices[1].z;
+        _drawLine(this, l02x, l12x, y, y, l02z, l12z, color);
     }
 }
 
