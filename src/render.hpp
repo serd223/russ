@@ -64,7 +64,7 @@ class Renderer {
     ~Renderer();
     void clear(Color color);
     void drawModel(Model& model, Color tint, bool doLighting = true);
-    void drawTriangleFilled(const Point& vertex0, const Point& vertex1, const Point& vertex2, Color color);
+    void drawTriangleFilled(Vec3 vertex0, Vec3 vertex1, Vec3 vertex2, Color color, float w, float h);
     float z_at(int x, int y);
     float z_set(int x, int y, float z);
     private:
