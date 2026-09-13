@@ -221,13 +221,15 @@ void Renderer::drawTriangleFilled(Vec3 vertex0, Vec3 vertex1, Vec3 vertex2, Colo
     Vec3 v2v0 = v0 - v2;
 
     SDL::Uint32 pixel = SDL::SDL_MapSurfaceRGB(inner_surface, color.r, color.g, color.b);
+
+    // Each pixel can be processed in parallel without data races
     for (int y = miny; y <= maxy; y++) {
         SDL::Uint32* row = reinterpret_cast<SDL::Uint32*>(reinterpret_cast<unsigned char*>(inner_surface->pixels) + (y * inner_surface->pitch));
         for (int x = minx; x <= maxx; x++) {
             Vec3 p = {
-                .x = static_cast<float>(x),
-                .y = static_cast<float>(y),
-                .z = 0.0,
+                static_cast<float>(x),
+                static_cast<float>(y),
+                0.0,
             };
             // solve N * (p - v0) = 0
             p.z = v0.z - (N.x * (p.x - v0.x) + N.y * (p.y - v0.y)) * inverse_nz;
