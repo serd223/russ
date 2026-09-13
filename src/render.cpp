@@ -5,11 +5,6 @@
 #include <span>
 #include <stdio.h>
 #include <vector>
-
-namespace SDL {
-    #include <SDL3/SDL.h>
-}
-
 #include <rmath.hpp>
 #include <render.hpp>
 
@@ -204,10 +199,12 @@ void Renderer::drawTriangleFilled(Vec3 vertex0, Vec3 vertex1, Vec3 vertex2, Colo
     if (vertices[1].y < vertices[0].y) std::swap(vertices[1], vertices[0]);
     if (vertices[2].y < vertices[0].y) std::swap(vertices[2], vertices[0]);
     if (vertices[2].y < vertices[1].y) std::swap(vertices[2], vertices[1]); // v2y > v1y > v0y
-    int minx = std::max(std::min(std::min(vertices[0].x, vertices[1].x), vertices[2].x), 0.0f);
-    int maxx = std::min(std::max(std::max(vertices[0].x, vertices[1].x), vertices[2].x), w);
     int miny = std::max(vertices[0].y, 0.0f);
-    int maxy = std::min(vertices[2].y, h);
+    int maxy = std::min(vertices[2].y, h-1);
+    if (miny >= maxy) return;
+    int minx = std::max(std::min(std::min(vertices[0].x, vertices[1].x), vertices[2].x), 0.0f);
+    int maxx = std::min(std::max(std::max(vertices[0].x, vertices[1].x), vertices[2].x), w-1);
+    if (minx >= maxx) return;
     Vec3 v0 = vertices[0];
     Vec3 v1 = vertices[1];
     Vec3 v2 = vertices[2];
@@ -233,6 +230,10 @@ void Renderer::drawTriangleFilled(Vec3 vertex0, Vec3 vertex1, Vec3 vertex2, Colo
             };
             // solve N * (p - v0) = 0
             p.z = v0.z - (N.x * (p.x - v0.x) + N.y * (p.y - v0.y)) * inverse_nz;
+            if (p.z <= 0.0f) {
+                continue;
+            };
+
             Vec3 v1p = p - v1;
             Vec3 C = v1v2.cross(v1p);
             if (C * N  < 0) continue;
