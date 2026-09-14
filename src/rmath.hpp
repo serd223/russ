@@ -23,20 +23,20 @@ class Vec3 {
     constexpr Vec3() = default;
     constexpr Vec3(float x, float y, float z) : x{x}, y{y}, z{z} {}
     
-    constexpr Vec3 cross(Vec3 rhs) const {
+    inline Vec3 cross(Vec3 rhs) const {
         return {
             this->y * rhs.z - this->z * rhs.y,
             this->z * rhs.x - this->x * rhs.z,
             this->x * rhs.y - this->y * rhs.x
         };
     }
-    constexpr float squarelen() const {
+    inline float squarelen() const {
         return this->x * this->x + this->y * this->y + this->z * this->z;
     }
-    constexpr float len() const {
+    inline float len() const {
         return sqrtf(this->x * this->x + this->y * this->y + this->z * this->z);
     }
-    constexpr Vec3 normalize() const {
+    inline Vec3 normalize() const {
         float l = len();
         return {x/l, y/l, z/l};
     }
@@ -122,7 +122,7 @@ class xVec3 {
     xsimd::batch<float> x, y, z;
     static xVec3 from_vec(const Vec3& v);
 
-    constexpr xVec3 cross(xVec3 rhs) const {
+    inline xVec3 cross(xVec3 rhs) const {
         return {
             xsimd::fms(this->y, rhs.z, (this->z * rhs.y)),
             xsimd::fms(this->z, rhs.x, (this->x * rhs.z)),
@@ -132,7 +132,7 @@ class xVec3 {
     Vec3 get(size_t i) const;
 };
 
-constexpr xVec3 operator + (const xVec3& lhs, const xVec3& rhs) {
+inline xVec3 operator + (const xVec3& lhs, const xVec3& rhs) {
     return {
         lhs.x + rhs.x,
         lhs.y + rhs.y,
@@ -140,7 +140,7 @@ constexpr xVec3 operator + (const xVec3& lhs, const xVec3& rhs) {
     };   
 }
 
-constexpr xVec3 operator - (const xVec3& lhs, const xVec3& rhs) {
+inline xVec3 operator - (const xVec3& lhs, const xVec3& rhs) {
     return {
         lhs.x - rhs.x,
         lhs.y - rhs.y,
@@ -148,6 +148,6 @@ constexpr xVec3 operator - (const xVec3& lhs, const xVec3& rhs) {
     };   
 }
 
-constexpr xsimd::batch<float> operator * (const xVec3& lhs, const xVec3& rhs) {
+inline xsimd::batch<float> operator * (const xVec3& lhs, const xVec3& rhs) {
     return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
 }
