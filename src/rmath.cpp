@@ -1,5 +1,20 @@
 #include <rmath.hpp>
 
+xVec3 xVec3::from_vec(const Vec3& v) {
+    return {
+        {v.x, v.x, v.x, v.x},
+        {v.y, v.y, v.y, v.y},
+        {v.z, v.z, v.z, v.z},
+    };
+}
+
+Vec3 xVec3::get(size_t i) const {
+    return {
+        x.get(i),
+        y.get(i),
+        z.get(i)
+    };
+}
 Mat3x3 operator * (const Mat3x3& lhs, const Mat3x3& rhs) {
     return {
         ._00 = lhs._00 * rhs._00 + lhs._01 * rhs._10 + lhs._02 * rhs._20,

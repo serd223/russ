@@ -7,6 +7,7 @@
 #include <vector>
 #include <rmath.hpp>
 #include <render.hpp>
+#include <xsimd/xsimd.hpp>
 
 typedef SDL::SDL_Color Color;
 
@@ -205,51 +206,93 @@ void Renderer::drawTriangleFilled(Vec3 vertex0, Vec3 vertex1, Vec3 vertex2, Colo
     int minx = std::max(std::min(std::min(vertices[0].x, vertices[1].x), vertices[2].x), 0.0f);
     int maxx = std::min(std::max(std::max(vertices[0].x, vertices[1].x), vertices[2].x), w-1);
     if (minx >= maxx) return;
-    Vec3 v0 = vertices[0];
-    Vec3 v1 = vertices[1];
-    Vec3 v2 = vertices[2];
-    Vec3 v0v1 = v1 - v0;
-    Vec3 v0v2 = v2 - v0;
-    Vec3 N = v0v1.cross(v0v2);
-    if (std::abs(N.z) < 1e-9) return;
-    float inverse_nz = 1.0 / N.z;
+    constexpr int chunk_len = 4;
+    int row_len = maxx - minx + 1;
+    int chunk_count = row_len / chunk_len;
+    // Ignore remainder for now!
+    int chunk_rem = row_len % chunk_len;
+    xVec3 v0 = xVec3::from_vec(vertices[0]);
+    xVec3 v1 = xVec3::from_vec(vertices[1]);
+    xVec3 v2 = xVec3::from_vec(vertices[2]);
+    xVec3 v0v1 = v1 - v0;
+    xVec3 v0v2 = v2 - v0;
+    xVec3 N = v0v1.cross(v0v2);
+    if (std::abs(N.z.first()) < 1e-9) return;
+    // float inverse_nz = 1.0 / N.z;
+    xsimd::batch<float> inverse_N = xsimd::batch<float>{1.0f, 1.0f, 1.0f, 1.0f} / N.z;
 
-    Vec3 v1v2 = v2 - v1;
-    Vec3 v2v0 = v0 - v2;
+    xVec3 v1v2 = v2 - v1;
+    xVec3 v2v0 = v0 - v2;
 
     SDL::Uint32 pixel = SDL::SDL_MapSurfaceRGB(inner_surface, color.r, color.g, color.b);
-
+    static const xsimd::batch<float> xoffsets = {0.0, 1.0, 2.0, 3.0};
+    Vec3 n = N.get(0);
+    float in = inverse_N.get(0);
+    Vec3 _v0 = v0.get(0);
+    Vec3 _v1 = v1.get(0);
+    Vec3 _v2 = v2.get(0);
     // Each pixel can be processed in parallel without data races
     for (int y = miny; y <= maxy; y++) {
         SDL::Uint32* row = reinterpret_cast<SDL::Uint32*>(reinterpret_cast<unsigned char*>(inner_surface->pixels) + (y * inner_surface->pitch));
-        for (int x = minx; x <= maxx; x++) {
+        float* z_row = z() + y * z_stride();
+        for (int ix = 0; ix < chunk_count; ix++) {
+            int x0 = minx + chunk_len * ix;
+
+            float x0f = static_cast<float>(x0);
+            xsimd::batch<float> xf = xoffsets + x0f;
+            float yf = static_cast<float>(y);
+            xVec3 p = {
+                xf,
+                {yf, yf, yf, yf},
+                {0.0, 0.0, 0.0, 0.0}
+            };
+            // solve N * (p - v0) = 0
+            p.z = xsimd::fnma((xsimd::fma(N.x, (p.x - v0.x), N.y * (p.y - v0.y))), inverse_N, v0.z);
+
+            xVec3 v1p = p - v1;
+            xVec3 v2p = p - v2;
+            xVec3 v0p = p - v0;
+
+            xsimd::batch<float> dot0 = v1v2.cross(v1p) * N;
+            xsimd::batch<float> dot1 = v2v0.cross(v2p) * N;
+            xsimd::batch<float> dot2 = v0v1.cross(v0p) * N;
+
+            xsimd::batch<float> existing_zs = xsimd::batch<float>::load_unaligned(&z_row[x0]);
+            xsimd::batch_bool<float> mask = (dot0 >= 0.0f) && (dot1 >= 0.0f) && (dot2 >= 0.0f) && (p.z > 0.0f) && (p.z < existing_zs);
+            if (xsimd::none(mask)) continue;
+            for (size_t i = 0; i < chunk_len; i++) {
+                if (mask.get(i)) {
+                    int px = x0 + i;
+                    z_row[px] = p.z.get(i);
+                    row[px] = pixel;
+                }
+            }
+        }
+        if (chunk_rem == 0) continue;
+        for (int x = maxx - chunk_rem + 1; x <= maxx; x++) {
             Vec3 p = {
                 static_cast<float>(x),
                 static_cast<float>(y),
-                0.0,
+                0
             };
-            // solve N * (p - v0) = 0
-            p.z = v0.z - (N.x * (p.x - v0.x) + N.y * (p.y - v0.y)) * inverse_nz;
-            if (p.z <= 0.0f) {
-                continue;
-            };
+            p.z = _v0.z - (n.x * (p.x - _v0.x) + n.y * (p.y - _v0.y)) * in;
+            if (p.z <= 0.0f) continue;
+            if (p.z >= z_row[x]) continue;
 
-            Vec3 v1p = p - v1;
-            Vec3 C = v1v2.cross(v1p);
-            if (C * N  < 0) continue;
-            Vec3 v2p = p - v2;
-            C = v2v0.cross(v2p);
-            if (C * N  < 0) continue;
-            Vec3 v0p = p - v0;
-            C = v0v1.cross(v0p);
-            if (C * N  < 0) continue;
+            Vec3 v1p = p - _v1;
+            float dot0 = v1v2.get(0).cross(v1p) * n;
+            if (dot0 < 0) continue;
 
-            if (p.z < z_at(x, y)) {
-            // if (x >= 0 && x < inner_surface->w && y >= 0 && y < inner_surface->h && p.z < z_at(x, y)) {
-                z_set(x, y, p.z);
-                row[x] = pixel;
-            }
+            Vec3 v2p = p - _v2;
+            float dot1 = v2v0.get(0).cross(v2p) * n;
+            if (dot1 < 0) continue;
 
+            Vec3 v0p = p - _v0;
+            float dot2 = v0v1.get(0).cross(v0p) * n;
+            if (dot2 < 0) continue;
+
+            z_row[x] = p.z;
+            row[x] = pixel;
         }
     }
 }

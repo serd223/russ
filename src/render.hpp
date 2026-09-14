@@ -67,6 +67,12 @@ class Renderer {
     void drawTriangleFilled(Vec3 vertex0, Vec3 vertex1, Vec3 vertex2, Color color, float w, float h);
     float z_at(int x, int y);
     float z_set(int x, int y, float z);
+    constexpr float* z() {
+        return m_z_buffer.data();
+    };
+    constexpr size_t z_stride() {
+        return m_z_buffer_stride;
+    };
     private:
     std::vector<float> m_z_buffer;
     size_t m_z_buffer_stride;

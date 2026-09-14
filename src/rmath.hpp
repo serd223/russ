@@ -4,6 +4,9 @@
     Structs like Vectors and functions that are related to them.
 */
 #include <math.h>
+#include <xsimd/xsimd.hpp>
+
+
 
 struct Vec2 {
     public:
@@ -114,3 +117,37 @@ class Mat3x3 {
 
 Mat3x3 operator * (const Mat3x3& lhs, const Mat3x3& rhs);
 Vec3 operator * (const Mat3x3& lhs, const Vec3& rhs);
+class xVec3 {
+    public:
+    xsimd::batch<float> x, y, z;
+    static xVec3 from_vec(const Vec3& v);
+
+    constexpr xVec3 cross(xVec3 rhs) const {
+        return {
+            xsimd::fms(this->y, rhs.z, (this->z * rhs.y)),
+            xsimd::fms(this->z, rhs.x, (this->x * rhs.z)),
+            xsimd::fms(this->x, rhs.y, (this->y * rhs.x))
+        };
+    }
+    Vec3 get(size_t i) const;
+};
+
+constexpr xVec3 operator + (const xVec3& lhs, const xVec3& rhs) {
+    return {
+        lhs.x + rhs.x,
+        lhs.y + rhs.y,
+        lhs.z + rhs.z,
+    };   
+}
+
+constexpr xVec3 operator - (const xVec3& lhs, const xVec3& rhs) {
+    return {
+        lhs.x - rhs.x,
+        lhs.y - rhs.y,
+        lhs.z - rhs.z,
+    };   
+}
+
+constexpr xsimd::batch<float> operator * (const xVec3& lhs, const xVec3& rhs) {
+    return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
+}
