@@ -1,6 +1,6 @@
 #pragma once
 #include <array>
-#include <vector>
+#include <span>
 
 /*
     Camera object, this is the POV of our Renderer. Camera's position in world coordinates,
@@ -13,13 +13,33 @@ class Camera {
     public:
     const Vec3 origin = {0, 0, 0};
     Vec3 pos = {0, 0, 0};
-    Vec3 rot() const;
+    constexpr Vec3 rot() const {
+        return m_rot;
+    };
     /// recalculates up, right, front
     void rot(Vec3 newRot);
-    Vec3 front() const;
-    Vec3 up() const;
-    Vec3 right() const;
-    bool draw(std::vector<Vec3>& vertices);
+
+    constexpr Vec3 front() const {
+        return m_front;
+    }
+
+    constexpr Vec3 up() const {
+        return m_up;
+    }
+
+    constexpr Vec3 right() const {
+        return m_right;
+    }
+
+    constexpr float near() const {
+        return m_near;
+    }
+
+    constexpr float far() const {
+        return m_far;
+    }
+
+    bool draw(std::span<const Vec3, 3> vertices);
     
     Camera(Vec3 rot);
     

@@ -6,12 +6,12 @@
 */
 
 #include <span>
+#include <camera.hpp>
+#include <rmath.hpp>
+
 namespace SDL {
     #include <SDL3/SDL.h>
 }
-
-#include <camera.hpp>
-#include <rmath.hpp>
 
 typedef SDL::SDL_Color Color;
 

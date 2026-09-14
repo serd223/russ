@@ -1,7 +1,6 @@
 #include <camera.hpp>
 #include <rmath.hpp>
 #include <math.h>
-#include <vector>
 
 Camera::Camera(Vec3 rot) {
     this->rot(rot);
@@ -11,10 +10,6 @@ Camera::Camera(Vec3 rot) {
     m_sn[2] = {0, -m_fc / sqrt(9 + m_fc * m_fc), -3 / sqrt(9 + m_fc * m_fc)};
     m_sn[3] = {m_fc / sqrt(16 + m_fc * m_fc), 0, -4 / sqrt(16 + m_fc *m_fc )};
     
-}
-
-Vec3 Camera::rot() const {
-    return m_rot;
 }
 
 void Camera::rot(Vec3 newRot) {
@@ -31,19 +26,8 @@ void Camera::rot(Vec3 newRot) {
 
 }
 
-Vec3 Camera::front() const {
-    return m_front;
-}
-
-Vec3 Camera::up() const {
-    return m_up;
-}
-
-Vec3 Camera::right() const {
-    return m_right;
-}
-
-bool Camera::draw(std::vector<Vec3>& vertices) {
+bool Camera::draw(std::span<const Vec3, 3> vertices) {
+    // compiler should unroll
     for (auto& v : vertices) {
         if (v.z <= m_near || v.z >= m_far) return false; // Near and far plane
         for (size_t i = 0; i < m_sn.size(); i++) {
