@@ -299,27 +299,32 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
             std::array<Point, 6> vIn = vOut;
             int vInSize = vOutSize;
             vOutSize = 0;
+
             
             for (int i = 0; i < vInSize; i++) {
                 Point currentP = vIn[i];
-                Point nextP = vIn[(i + 1) % (int)vInSize];
+                Point prevP = vIn[(i - 1) % (int)vInSize];
                 Point interP;
                 try {
-                    interP = _intersection(currentP, nextP, clipEdge);
+                    interP = _intersection(prevP, currentP, clipEdge);
                 } 
                 catch (const std::runtime_error& e) {
+                    if (_inEdge(prevP, clipEdge)) {
+                        vOut[vOutSize] = currentP;
+                        vOutSize++;
+                    }
                     continue;
                 }
 
-                if (_inEdge(nextP, clipEdge)) {
-                    if (!_inEdge(currentP, clipEdge)) {
+                if (_inEdge(currentP, clipEdge)) {
+                    if (!_inEdge(prevP, clipEdge)) {
                         vOut[vOutSize] = interP;
                         vOutSize++;
                     }
-                    vOut[vOutSize] = nextP;
+                    vOut[vOutSize] = currentP;
                     vOutSize++;
                 }
-                else if (_inEdge(currentP, clipEdge)) {
+                else if (_inEdge(prevP, clipEdge)) {
                     vOut[vOutSize] = interP;
                     vOutSize++;
                 }
@@ -327,7 +332,7 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         }
 
         // Draw triangles
-        for (int i = 0; i < vOutSize - 2; i += 2) {
+        for (int i = 0; i < vOutSize - 1; i += 2) {
             Point vo1 = vOut[(i  ) % vOutSize];
             Point vo2 = vOut[(i+1) % vOutSize];
             Point vo3 = vOut[(i+2) % vOutSize];
