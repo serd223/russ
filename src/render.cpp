@@ -248,6 +248,9 @@ void Renderer::drawTriangleFilled(Vec3 vertex0, Vec3 vertex1, Vec3 vertex2, Colo
             };
             // solve N * (p - v0) = 0
             p.z = xsimd::fnma((xsimd::fma(N.x, (p.x - v0.x), N.y * (p.y - v0.y))), inverse_N, v0.z);
+            xsimd::batch<float> existing_zs = xsimd::batch<float>::load_unaligned(&z_row[x0]);
+            xsimd::batch_bool<float> mask = (p.z > 0.0f) && (p.z < existing_zs);
+            if (xsimd::none(mask)) continue;
 
             xVec3 v1p = p - v1;
             xVec3 v2p = p - v2;
@@ -257,8 +260,7 @@ void Renderer::drawTriangleFilled(Vec3 vertex0, Vec3 vertex1, Vec3 vertex2, Colo
             xsimd::batch<float> dot1 = v2v0.cross(v2p) * N;
             xsimd::batch<float> dot2 = v0v1.cross(v0p) * N;
 
-            xsimd::batch<float> existing_zs = xsimd::batch<float>::load_unaligned(&z_row[x0]);
-            xsimd::batch_bool<float> mask = (dot0 >= 0.0f) && (dot1 >= 0.0f) && (dot2 >= 0.0f) && (p.z > 0.0f) && (p.z < existing_zs);
+            mask = mask && (dot0 >= 0.0f) && (dot1 >= 0.0f) && (dot2 >= 0.0f);
             if (xsimd::none(mask)) continue;
             for (size_t i = 0; i < chunk_len; i++) {
                 if (mask.get(i)) {

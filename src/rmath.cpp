@@ -15,6 +15,7 @@ Vec3 xVec3::get(size_t i) const {
         z.get(i)
     };
 }
+
 Mat3x3 operator * (const Mat3x3& lhs, const Mat3x3& rhs) {
     return {
         ._00 = lhs._00 * rhs._00 + lhs._01 * rhs._10 + lhs._02 * rhs._20,
