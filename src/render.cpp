@@ -231,6 +231,10 @@ void Renderer::drawTriangleFilled(Vec3 vertex0, Vec3 vertex1, Vec3 vertex2, Colo
     Vec3 _v0 = v0.get(0);
     Vec3 _v1 = v1.get(0);
     Vec3 _v2 = v2.get(0);
+    Vec3 _v0v1 = v0v1.get(0);
+    Vec3 _v1v2 = v1v2.get(0);
+    Vec3 _v2v0 = v2v0.get(0);
+
     // Each pixel can be processed in parallel without data races
     for (int y = miny; y <= maxy; y++) {
         SDL::Uint32* row = reinterpret_cast<SDL::Uint32*>(reinterpret_cast<unsigned char*>(inner_surface->pixels) + (y * inner_surface->pitch));
@@ -282,15 +286,15 @@ void Renderer::drawTriangleFilled(Vec3 vertex0, Vec3 vertex1, Vec3 vertex2, Colo
             if (p.z >= z_row[x]) continue;
 
             Vec3 v1p = p - _v1;
-            float dot0 = v1v2.get(0).cross(v1p) * n;
+            float dot0 = _v1v2.cross(v1p) * n;
             if (dot0 < 0) continue;
 
             Vec3 v2p = p - _v2;
-            float dot1 = v2v0.get(0).cross(v2p) * n;
+            float dot1 = _v2v0.cross(v2p) * n;
             if (dot1 < 0) continue;
 
             Vec3 v0p = p - _v0;
-            float dot2 = v0v1.get(0).cross(v0p) * n;
+            float dot2 = _v0v1.cross(v0p) * n;
             if (dot2 < 0) continue;
 
             z_row[x] = p.z;
