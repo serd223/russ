@@ -1,5 +1,6 @@
 #include "rmath.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <math.h>
 #include <span>
 #include <stdexcept>
@@ -30,6 +31,7 @@ Point _intersection(Point currentP, Point nextP, iVec2 clipEdge) {
             currentP.z + (nextP.z - currentP.z) * t,            
         };
     }
+    return {0, 0, 0};
 }
 
 bool _inEdge(Point p, iVec2 clipEdge) {
@@ -280,21 +282,27 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         }
 
         const float d = 1000.0;
-        std::vector<Point> vOut = {};
+        std::array<Point, 6> vOut = {
+            Point {(int)(v1.x / v1.z * d) + inner_surface->w / 2, -(int)(v1.y / v1.z * d) + inner_surface->h / 2, v1.z},
+            Point {(int)(v2.x / v2.z * d) + inner_surface->w / 2, -(int)(v2.y / v2.z * d) + inner_surface->h / 2, v2.z},
+            Point {(int)(v3.x / v3.z * d) + inner_surface->w / 2, -(int)(v3.y / v3.z * d) + inner_surface->h / 2, v3.z},
+            Point {0, 0, 0},  
+            Point {0, 0, 0},  
+            Point {0, 0, 0},  
+        };
+        int vOutSize = 3;
         // On-screen positions of vertices // - on the y because actual y coordinates are flipped
-        vOut.push_back({(int)(v1.x / v1.z * d) + inner_surface->w / 2, -(int)(v1.y / v1.z * d) + inner_surface->h / 2, v1.z});
-        vOut.push_back({(int)(v2.x / v2.z * d) + inner_surface->w / 2, -(int)(v2.y / v2.z * d) + inner_surface->h / 2, v2.z});
-        vOut.push_back({(int)(v3.x / v3.z * d) + inner_surface->w / 2, -(int)(v3.y / v3.z * d) + inner_surface->h / 2, v3.z});
 
         //Sutherland-Hodgman Clipping Algorithm : https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
-        const static std::vector<iVec2> clipEdges = {{1, 0}};
+        const static std::array<iVec2, 1> clipEdges = {{1, 0}};
         for (auto& clipEdge : clipEdges) {
-            std::vector<Point> vIn = vOut;
-            vOut.clear();
+            std::array<Point, 6> vIn = vOut;
+            int vInSize = vOutSize;
+            vOutSize = 0;
             
-            for (int i = 0; i < vIn.size(); i++) {
+            for (int i = 0; i < vInSize; i++) {
                 Point currentP = vIn[i];
-                Point nextP = vIn[(i + 1) % (int)vIn.size()];
+                Point nextP = vIn[(i + 1) % (int)vInSize];
                 Point interP;
                 try {
                     interP = _intersection(currentP, nextP, clipEdge);
@@ -305,21 +313,24 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
 
                 if (_inEdge(nextP, clipEdge)) {
                     if (!_inEdge(currentP, clipEdge)) {
-                        vOut.push_back(interP);
+                        vOut[vOutSize] = interP;
+                        vOutSize++;
                     }
-                    vOut.push_back(nextP);
+                    vOut[vOutSize] = nextP;
+                    vOutSize++;
                 }
                 else if (_inEdge(currentP, clipEdge)) {
-                    vOut.push_back(interP);
+                    vOut[vOutSize] = interP;
+                    vOutSize++;
                 }
             }
         }
 
         // Draw triangles
-        for (size_t i = 0; i < vOut.size() - 2; i += 2) {
-            Point vo1 = vOut[(i  ) % (int)vOut.size()];
-            Point vo2 = vOut[(i+1) % (int)vOut.size()];
-            Point vo3 = vOut[(i+2) % (int)vOut.size()];
+        for (int i = 0; i < vOutSize - 2; i += 2) {
+            Point vo1 = vOut[(i  ) % vOutSize];
+            Point vo2 = vOut[(i+1) % vOutSize];
+            Point vo3 = vOut[(i+2) % vOutSize];
 
             drawTriangleFilled((Point[]){ 
                     {vo1.x, vo1.y, vo1.z},
