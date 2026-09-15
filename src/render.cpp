@@ -31,6 +31,7 @@ Point _intersection(Point currentP, Point nextP, iVec2 clipEdge) {
             currentP.z + (nextP.z - currentP.z) * t,            
         };
     }
+    
     return {0, 0, 0};
 }
 
@@ -294,37 +295,36 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         // On-screen positions of vertices // - on the y because actual y coordinates are flipped
 
         //Sutherland-Hodgman Clipping Algorithm : https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
-        const static std::array<iVec2, 1> clipEdges = {{1, 0}};
+        const static std::array<iVec2, 2> clipEdges = {iVec2{1, 0}, iVec2{0, 1}};
         for (auto& clipEdge : clipEdges) {
             std::array<Point, 6> vIn = vOut;
             int vInSize = vOutSize;
             vOutSize = 0;
 
-            
             for (int i = 0; i < vInSize; i++) {
                 Point currentP = vIn[i];
-                Point prevP = vIn[(i - 1) % (int)vInSize];
+                Point nextP = vIn[(i + 1) % (int)vInSize];
                 Point interP;
                 try {
-                    interP = _intersection(prevP, currentP, clipEdge);
+                    interP = _intersection(currentP, nextP, clipEdge);
                 } 
                 catch (const std::runtime_error& e) {
-                    if (_inEdge(prevP, clipEdge)) {
-                        vOut[vOutSize] = currentP;
+                    if (_inEdge(nextP, clipEdge)) {
+                        vOut[vOutSize] = nextP;
                         vOutSize++;
                     }
                     continue;
                 }
 
-                if (_inEdge(currentP, clipEdge)) {
-                    if (!_inEdge(prevP, clipEdge)) {
+                if (_inEdge(nextP, clipEdge)) {
+                    if (!_inEdge(currentP, clipEdge)) {
                         vOut[vOutSize] = interP;
                         vOutSize++;
                     }
-                    vOut[vOutSize] = currentP;
+                    vOut[vOutSize] = nextP;
                     vOutSize++;
                 }
-                else if (_inEdge(prevP, clipEdge)) {
+                else if (_inEdge(currentP, clipEdge)) {
                     vOut[vOutSize] = interP;
                     vOutSize++;
                 }
