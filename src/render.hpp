@@ -69,6 +69,6 @@ class Renderer {
     private:
     std::vector<float> m_z_buffer;
     size_t m_z_buffer_stride;
-    Point _intersection(Point currentP, Point nextP, iVec2 clipEdge);
-    bool _inEdge(Point p, iVec2 clipEdge);
+    Point _intersection(Point& currentP, Point& nextP, iVec2& clipEdge);
+    bool _inEdge(Point& p, iVec2& clipEdge);
 };

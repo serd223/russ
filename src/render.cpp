@@ -19,7 +19,7 @@ namespace SDL {
 
 typedef SDL::SDL_Color Color;
 
-Point Renderer::_intersection(Point currentP, Point nextP, iVec2 clipEdge) {
+Point Renderer::_intersection(Point& currentP, Point& nextP, iVec2& clipEdge) {
     if (clipEdge.x == 1 && clipEdge.y == 0) {
         if (nextP.y - currentP.y == 0) {
             throw std::runtime_error("Division by 0.");
@@ -42,16 +42,43 @@ Point Renderer::_intersection(Point currentP, Point nextP, iVec2 clipEdge) {
             currentP.z + (nextP.z - currentP.z) * t
         };
     }
-    
+    if (clipEdge.x == -1 && clipEdge.y == 0) {
+        if (nextP.y - currentP.y == 0) {
+            throw std::runtime_error("Division by 0.");
+        }
+        float t = (inner_surface->h - currentP.y) / (float)(nextP.y - currentP.y);
+        return Point {
+            (int)round(currentP.x + (nextP.x - currentP.x) * t),
+            inner_surface->h,
+            currentP.z + (nextP.z - currentP.z) * t  
+        };
+    }
+    if (clipEdge.x == 0 && clipEdge.y == -1) {
+        if (nextP.x - currentP.x == 0) {
+            throw std::runtime_error("Division by 0.");
+        }
+        float t = -currentP.x / (float)(nextP.x - currentP.x);
+        return Point {
+            0,
+            (int)round(currentP.y + (nextP.y - currentP.y) * t),
+            currentP.z + (nextP.z - currentP.z) * t
+        };
+    }
     return {0, 0, 0};
 }
 
-bool Renderer::_inEdge(Point p, iVec2 clipEdge) {
+bool Renderer::_inEdge(Point& p, iVec2& clipEdge) {
     if (clipEdge.x == 1 && clipEdge.y == 0) {
         return (p.y > 0);
     }
     if (clipEdge.x == 0 && clipEdge.y == 1) {
         return (p.x < inner_surface->w);
+    }
+    if (clipEdge.x == -1 && clipEdge.y == 0) {
+        return (p.y < inner_surface->h);
+    }
+    if (clipEdge.x == 0 && clipEdge.y == -1) {
+        return (p.x > 0);
     }
     return false;
 }
@@ -309,8 +336,8 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         int vOutSize = 3;
 
         //Sutherland-Hodgman Clipping Algorithm : https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
-        const static std::array<iVec2, 2> clipEdges = {iVec2{1, 0}, iVec2{0, 1}};
-        for (auto& clipEdge : clipEdges) {
+        const static std::array<iVec2, 4> clipEdges = {iVec2{1, 0}, iVec2{0, 1}, iVec2{-1, 0}, iVec2{0, -1}};
+        for (auto clipEdge : clipEdges) {
             std::array<Point, 10> vIn = vOut;
             int vInSize = vOutSize;
             vOutSize = 0;
