@@ -19,7 +19,7 @@ namespace SDL {
 
 typedef SDL::SDL_Color Color;
 
-Point _intersection(Point currentP, Point nextP, iVec2 clipEdge) {
+Point Renderer::_intersection(Point currentP, Point nextP, iVec2 clipEdge) {
     if (clipEdge.x == 1 && clipEdge.y == 0) {
         if (nextP.y - currentP.y == 0) {
             throw std::runtime_error("Division by 0.");
@@ -28,16 +28,30 @@ Point _intersection(Point currentP, Point nextP, iVec2 clipEdge) {
         return Point {
             (int)round(currentP.x + (nextP.x - currentP.x) * t),
             0,
-            currentP.z + (nextP.z - currentP.z) * t,            
+            currentP.z + (nextP.z - currentP.z) * t  
+        };
+    }
+    if (clipEdge.x == 0 && clipEdge.y == 1) {
+        if (nextP.x - currentP.x == 0) {
+            throw std::runtime_error("Division by 0.");
+        }
+        float t = (inner_surface->w - currentP.x) / (float)(nextP.x - currentP.x);
+        return Point {
+            inner_surface->w,
+            (int)round(currentP.y + (nextP.y - currentP.y) * t),
+            currentP.z + (nextP.z - currentP.z) * t
         };
     }
     
     return {0, 0, 0};
 }
 
-bool _inEdge(Point p, iVec2 clipEdge) {
+bool Renderer::_inEdge(Point p, iVec2 clipEdge) {
     if (clipEdge.x == 1 && clipEdge.y == 0) {
         return (p.y > 0);
+    }
+    if (clipEdge.x == 0 && clipEdge.y == 1) {
+        return (p.x < inner_surface->w);
     }
     return false;
 }
@@ -283,7 +297,8 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         }
 
         const float d = 1000.0;
-        std::array<Point, 6> vOut = {
+        // On-screen positions of vertices // - on the y because actual y coordinates are flipped
+        std::array<Point, 10> vOut = {
             Point {(int)(v1.x / v1.z * d) + inner_surface->w / 2, -(int)(v1.y / v1.z * d) + inner_surface->h / 2, v1.z},
             Point {(int)(v2.x / v2.z * d) + inner_surface->w / 2, -(int)(v2.y / v2.z * d) + inner_surface->h / 2, v2.z},
             Point {(int)(v3.x / v3.z * d) + inner_surface->w / 2, -(int)(v3.y / v3.z * d) + inner_surface->h / 2, v3.z},
@@ -292,12 +307,11 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
             Point {0, 0, 0},  
         };
         int vOutSize = 3;
-        // On-screen positions of vertices // - on the y because actual y coordinates are flipped
 
         //Sutherland-Hodgman Clipping Algorithm : https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
         const static std::array<iVec2, 2> clipEdges = {iVec2{1, 0}, iVec2{0, 1}};
         for (auto& clipEdge : clipEdges) {
-            std::array<Point, 6> vIn = vOut;
+            std::array<Point, 10> vIn = vOut;
             int vInSize = vOutSize;
             vOutSize = 0;
 
@@ -332,10 +346,10 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         }
 
         // Draw triangles
-        for (int i = 0; i < vOutSize - 1; i += 2) {
-            Point vo1 = vOut[(i  ) % vOutSize];
-            Point vo2 = vOut[(i+1) % vOutSize];
-            Point vo3 = vOut[(i+2) % vOutSize];
+        for (int i = 0; i < vOutSize - 2; i++) {
+            Point vo1 = vOut[0];
+            Point vo2 = vOut[i + 1];
+            Point vo3 = vOut[i + 2];
 
             drawTriangleFilled((Point[]){ 
                     {vo1.x, vo1.y, vo1.z},
