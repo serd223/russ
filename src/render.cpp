@@ -1,9 +1,15 @@
 #include "rmath.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <math.h>
 #include <span>
+#include <stdexcept>
 #include <stdio.h>
 #include <vector>
+#include <cerrno>
+#include <cstring>
+#include <stdexcept>
+
 
 namespace SDL {
     #include <SDL3/SDL.h>
@@ -12,6 +18,70 @@ namespace SDL {
 #include <render.hpp>
 
 typedef SDL::SDL_Color Color;
+
+Point Renderer::_intersection(Point& currentP, Point& nextP, iVec2& clipEdge) {
+    if (clipEdge.x == 1 && clipEdge.y == 0) {
+        if (nextP.y - currentP.y == 0) {
+            throw std::runtime_error("Division by 0.");
+        }
+        float t = -currentP.y / (float)(nextP.y - currentP.y);
+        return Point {
+            (int)round(currentP.x + (nextP.x - currentP.x) * t),
+            0,
+            currentP.z + (nextP.z - currentP.z) * t  
+        };
+    }
+    if (clipEdge.x == 0 && clipEdge.y == 1) {
+        if (nextP.x - currentP.x == 0) {
+            throw std::runtime_error("Division by 0.");
+        }
+        float t = (inner_surface->w - currentP.x) / (float)(nextP.x - currentP.x);
+        return Point {
+            inner_surface->w,
+            (int)round(currentP.y + (nextP.y - currentP.y) * t),
+            currentP.z + (nextP.z - currentP.z) * t
+        };
+    }
+    if (clipEdge.x == -1 && clipEdge.y == 0) {
+        if (nextP.y - currentP.y == 0) {
+            throw std::runtime_error("Division by 0.");
+        }
+        float t = (inner_surface->h - currentP.y) / (float)(nextP.y - currentP.y);
+        return Point {
+            (int)round(currentP.x + (nextP.x - currentP.x) * t),
+            inner_surface->h,
+            currentP.z + (nextP.z - currentP.z) * t  
+        };
+    }
+    if (clipEdge.x == 0 && clipEdge.y == -1) {
+        if (nextP.x - currentP.x == 0) {
+            throw std::runtime_error("Division by 0.");
+        }
+        float t = -currentP.x / (float)(nextP.x - currentP.x);
+        return Point {
+            0,
+            (int)round(currentP.y + (nextP.y - currentP.y) * t),
+            currentP.z + (nextP.z - currentP.z) * t
+        };
+    }
+    return {0, 0, 0};
+}
+
+bool Renderer::_inEdge(Point& p, iVec2& clipEdge) {
+    if (clipEdge.x == 1 && clipEdge.y == 0) {
+        return (p.y > 0);
+    }
+    if (clipEdge.x == 0 && clipEdge.y == 1) {
+        return (p.x < inner_surface->w);
+    }
+    if (clipEdge.x == -1 && clipEdge.y == 0) {
+        return (p.y < inner_surface->h);
+    }
+    if (clipEdge.x == 0 && clipEdge.y == -1) {
+        return (p.x > 0);
+    }
+    return false;
+}
 
 Model::Model(const char* obj_file_path) {
     FILE* f = fopen(obj_file_path, "r");
@@ -193,13 +263,14 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
     thread_local std::vector<Vec3> vertices_world; // leak
     // Take each vertex and move it to camera space
     thread_local std::vector<Vec3> vertices; // leak
-    vertices_world.reserve(model.vertices.size());
-    vertices.reserve(model.vertices.size());
+    vertices_world.resize(model.vertices.size());
+    vertices.resize(model.vertices.size());
     for (size_t i = 0; i < model.vertices.size();i++) {
         // Scale and offset vertices to world positions
         vertices_world[i] = ((rot * model.vertices[i]) * model.scale) + position;
         vertices[i] = vertices_world[i];
         vertices[i] = {vertices[i] * cam.right(), vertices[i] * cam.up(), vertices[i] * cam.front()};
+        // vertices[i] = Mat3x3::rotXYZ({-cam.rot().x, -cam.rot().y, -cam.rot().z}) * vertices[i];
     }
 
     // Face culling
@@ -226,6 +297,7 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         faces.push_back(face);
     }
 
+    // Draw each face
     for (std::size_t i = 0; i < faces.size(); i++) {
         Vec3 n = faces[i].normal;
 
@@ -253,13 +325,65 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         }
 
         const float d = 1000.0;
-        drawTriangleFilled((Point[]){ // - on the y because actual y coordinates are flipped
-                {(int)(v1.x / v1.z * d) + inner_surface->w / 2, -(int)(v1.y / v1.z * d) + inner_surface->h / 2, v1.z},
-                {(int)(v2.x / v2.z * d) + inner_surface->w / 2, -(int)(v2.y / v2.z * d) + inner_surface->h / 2, v2.z},
-                {(int)(v3.x / v3.z * d) + inner_surface->w / 2, -(int)(v3.y / v3.z * d) + inner_surface->h / 2, v3.z}
-            },
-            finalColor
-        );
+        // On-screen positions of vertices // - on the y because actual y coordinates are flipped
+        std::array<Point, 10> vOut = {
+            Point {(int)(v1.x / v1.z * d) + inner_surface->w / 2, -(int)(v1.y / v1.z * d) + inner_surface->h / 2, v1.z},
+            Point {(int)(v2.x / v2.z * d) + inner_surface->w / 2, -(int)(v2.y / v2.z * d) + inner_surface->h / 2, v2.z},
+            Point {(int)(v3.x / v3.z * d) + inner_surface->w / 2, -(int)(v3.y / v3.z * d) + inner_surface->h / 2, v3.z},
+        };
+        int vOutSize = 3;
+
+        //Sutherland-Hodgman Clipping Algorithm : https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
+        const static std::array<iVec2, 4> clipEdges = {iVec2{1, 0}, iVec2{0, 1}, iVec2{-1, 0}, iVec2{0, -1}};
+        for (auto clipEdge : clipEdges) {
+            std::array<Point, 10> vIn = vOut;
+            int vInSize = vOutSize;
+            vOutSize = 0;
+
+            for (int i = 0; i < vInSize; i++) {
+                Point currentP = vIn[i];
+                Point nextP = vIn[(i + 1) % (int)vInSize];
+                Point interP;
+                try {
+                    interP = _intersection(currentP, nextP, clipEdge);
+                } 
+                catch (const std::runtime_error& e) {
+                    if (_inEdge(nextP, clipEdge)) {
+                        vOut[vOutSize] = nextP;
+                        vOutSize++;
+                    }
+                    continue;
+                }
+
+                if (_inEdge(nextP, clipEdge)) {
+                    if (!_inEdge(currentP, clipEdge)) {
+                        vOut[vOutSize] = interP;
+                        vOutSize++;
+                    }
+                    vOut[vOutSize] = nextP;
+                    vOutSize++;
+                }
+                else if (_inEdge(currentP, clipEdge)) {
+                    vOut[vOutSize] = interP;
+                    vOutSize++;
+                }
+            }
+        }
+
+        // Draw triangles
+        for (int i = 0; i < vOutSize - 2; i++) {
+            Point vo1 = vOut[0];
+            Point vo2 = vOut[i + 1];
+            Point vo3 = vOut[i + 2];
+
+            drawTriangleFilled((Point[]){ 
+                    {vo1.x, vo1.y, vo1.z},
+                    {vo2.x, vo2.y, vo2.z},
+                    {vo3.x, vo3.y, vo3.z}
+                },
+                finalColor
+            );
+        }
     }
 }
 
@@ -296,4 +420,3 @@ void Renderer::drawTriangleFilled(std::span<const Point, 3> vertex, Color color)
         _drawLine(this, l02[i].x, l01[i].x, l02[i].y, l01[i].y, l02[i].z, l01[i].z, color);
     }
 }
-
