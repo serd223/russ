@@ -263,13 +263,14 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
     thread_local std::vector<Vec3> vertices_world; // leak
     // Take each vertex and move it to camera space
     thread_local std::vector<Vec3> vertices; // leak
-    vertices_world.reserve(model.vertices.size());
-    vertices.reserve(model.vertices.size());
+    vertices_world.resize(model.vertices.size());
+    vertices.resize(model.vertices.size());
     for (size_t i = 0; i < model.vertices.size();i++) {
         // Scale and offset vertices to world positions
         vertices_world[i] = ((rot * model.vertices[i]) * model.scale) + position;
         vertices[i] = vertices_world[i];
         vertices[i] = {vertices[i] * cam.right(), vertices[i] * cam.up(), vertices[i] * cam.front()};
+        // vertices[i] = Mat3x3::rotXYZ({-cam.rot().x, -cam.rot().y, -cam.rot().z}) * vertices[i];
     }
 
     // Face culling
@@ -329,9 +330,6 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
             Point {(int)(v1.x / v1.z * d) + inner_surface->w / 2, -(int)(v1.y / v1.z * d) + inner_surface->h / 2, v1.z},
             Point {(int)(v2.x / v2.z * d) + inner_surface->w / 2, -(int)(v2.y / v2.z * d) + inner_surface->h / 2, v2.z},
             Point {(int)(v3.x / v3.z * d) + inner_surface->w / 2, -(int)(v3.y / v3.z * d) + inner_surface->h / 2, v3.z},
-            Point {0, 0, 0},  
-            Point {0, 0, 0},  
-            Point {0, 0, 0},  
         };
         int vOutSize = 3;
 
