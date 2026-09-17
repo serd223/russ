@@ -1,21 +1,11 @@
 #include <errno.h>
 #include <string.h>
 #include <algorithm>
-#include <cstddef>
 #include <math.h>
 #include <span>
-#include <stdexcept>
 #include <stdio.h>
 #include <vector>
-#include <cerrno>
-#include <cstring>
-#include <stdexcept>
-
-
-namespace SDL {
-    #include <SDL3/SDL.h>
-}
-
+#include <rmath.hpp>
 #include <render.hpp>
 #include <xsimd/xsimd.hpp>
 
