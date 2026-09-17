@@ -5,8 +5,8 @@ clean:
 	rm -rf bin/main bin/debug
 
 CPPC=g++
-CPPFLAGS=-std=c++20 -Wall -Wextra -O3 -I$(shell pwd)/src $(shell pkg-config sdl3 --cflags)
-CPPDEBUGFLAGS=-std=c++20 -Wall -Wextra -g -O0 -I$(shell pwd)/src $(shell pkg-config sdl3 --cflags)
+CPPFLAGS=-std=c++20 -Wall -Wextra -O3 -I$(shell pwd)/src $(shell pkg-config sdl3 --cflags) $(shell pkg-config xsimd --cflags)
+CPPDEBUGFLAGS=-std=c++20 -Wall -Wextra -g -O0 -I$(shell pwd)/src $(shell pkg-config sdl3 --cflags) $(shell pkg-config xsimd --cflags)
 LIBS=$(shell pkg-config sdl3 --libs)
 
 SRCS=$(wildcard src/*.cpp)
