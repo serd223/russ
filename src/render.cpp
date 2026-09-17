@@ -192,6 +192,7 @@ void Renderer::clear(Color color) {
 constexpr int chunk_len = 4;
 
 void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
+    const float w = inner_surface->w, h = inner_surface->h;
     Vec3 position = model.pos - cam.pos;
     const Mat3x3 scaleMat = {
         .r1 = {model.scale, 0, 0},
@@ -351,12 +352,13 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
             Point vo2 = vOut[i + 1];
             Point vo3 = vOut[i + 2];
 
-            drawTriangleFilled((Point[]){ 
-                    {vo1.x, vo1.y, vo1.z},
-                    {vo2.x, vo2.y, vo2.z},
-                    {vo3.x, vo3.y, vo3.z}
-                },
-                finalColor
+            drawTriangleFilled( 
+                Vec3(vo1.x, vo1.y, vo1.z),
+                Vec3(vo2.x, vo2.y, vo2.z),
+                Vec3(vo3.x, vo3.y, vo3.z),
+                finalColor,
+                w,
+                h
             );
         }
     }
