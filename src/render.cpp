@@ -378,7 +378,7 @@ void Renderer::drawTriangleFilled(Vec3 vertex0, Vec3 vertex1, Vec3 vertex2, Colo
     const xVec3 v0v1 = v1 - v0;
     const xVec3 v0v2 = v2 - v0;
     const xVec3 N = v0v1.cross(v0v2);
-    if (std::abs(N.z.first()) < 1e-9) return;
+    if (std::abs(N.z.get(0)) < 1e-9) return;
     // float inverse_nz = 1.0 / N.z;
     const xsimd::batch<float> inverse_N = xsimd::batch<float>{1.0f, 1.0f, 1.0f, 1.0f} / N.z;
     const xVec3 v1v2 = v2 - v1;

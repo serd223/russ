@@ -6,6 +6,7 @@
 */
 
 #include <span>
+#include <vector>
 #include <camera.hpp>
 #include <rmath.hpp>
 
