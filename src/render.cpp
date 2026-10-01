@@ -13,20 +13,14 @@ typedef SDL::SDL_Color Color;
 
 Point Renderer::_intersection(Point& currentP, Point& nextP, iVec2& clipEdge) {
     if (clipEdge.x == 1 && clipEdge.y == 0) {
-        if (nextP.y - currentP.y == 0) {
-            throw std::runtime_error("Division by 0.");
-        }
         float t = -currentP.y / (float)(nextP.y - currentP.y);
         return Point {
             (int)round(currentP.x + (nextP.x - currentP.x) * t),
             0,
-            currentP.z + (nextP.z - currentP.z) * t  
+            currentP.z + (nextP.z - currentP.z) * t
         };
     }
     if (clipEdge.x == 0 && clipEdge.y == 1) {
-        if (nextP.x - currentP.x == 0) {
-            throw std::runtime_error("Division by 0.");
-        }
         float t = (inner_surface->w - currentP.x) / (float)(nextP.x - currentP.x);
         return Point {
             inner_surface->w,
@@ -35,9 +29,6 @@ Point Renderer::_intersection(Point& currentP, Point& nextP, iVec2& clipEdge) {
         };
     }
     if (clipEdge.x == -1 && clipEdge.y == 0) {
-        if (nextP.y - currentP.y == 0) {
-            throw std::runtime_error("Division by 0.");
-        }
         float t = (inner_surface->h - currentP.y) / (float)(nextP.y - currentP.y);
         return Point {
             (int)round(currentP.x + (nextP.x - currentP.x) * t),
@@ -46,9 +37,6 @@ Point Renderer::_intersection(Point& currentP, Point& nextP, iVec2& clipEdge) {
         };
     }
     if (clipEdge.x == 0 && clipEdge.y == -1) {
-        if (nextP.x - currentP.x == 0) {
-            throw std::runtime_error("Division by 0.");
-        }
         float t = -currentP.x / (float)(nextP.x - currentP.x);
         return Point {
             0,
@@ -264,6 +252,7 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
     }
 
     // Draw each face
+    bool isFirst = true;
     for (std::size_t i = 0; i < faces.size(); i++) {
         const Vec3 n = faces[i].normal;
 
@@ -289,6 +278,10 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
                 finalColor.b = (int)((float)finalColor.b * (1.0 - t));
             }
         }
+        if (isFirst) {
+            finalColor = {255, 0, 0, 255};
+            isFirst = false;
+        }
 
         const float d = 1000.0;
         // On-screen positions of vertices // - on the y because actual y coordinates are flipped
@@ -309,31 +302,22 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
             for (int i = 0; i < vInSize; i++) {
                 Point currentP = vIn[i];
                 Point nextP = vIn[(i + 1) % (int)vInSize];
-                Point interP;
-                try {
-                    interP = _intersection(currentP, nextP, clipEdge);
-                } 
-                catch (const std::runtime_error& e) {
-                    if (_inEdge(nextP, clipEdge)) {
-                        vOut[vOutSize] = nextP;
-                        vOutSize++;
-                    }
-                    continue;
-                }
 
                 if (_inEdge(nextP, clipEdge)) {
                     if (!_inEdge(currentP, clipEdge)) {
-                        vOut[vOutSize] = interP;
-                        vOutSize++;
+                        Point interP = _intersection(currentP, nextP, clipEdge);
+                        vOut[vOutSize++] = interP;
                     }
-                    vOut[vOutSize] = nextP;
-                    vOutSize++;
+                    vOut[vOutSize++] = nextP;
                 }
                 else if (_inEdge(currentP, clipEdge)) {
-                    vOut[vOutSize] = interP;
-                    vOutSize++;
+                    Point interP = _intersection(currentP, nextP, clipEdge);
+                    vOut[vOutSize++] = interP;
                 }
             }
+        }
+        if (vOutSize > 6) {
+            fprintf(stderr, "vOutSize = %d\n", vOutSize);
         }
 
         // Draw triangles
