@@ -246,13 +246,15 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         v2 = vertices[face.indices.b];
         v3 = vertices[face.indices.c];
         const Vec3 vecs[3] = {v1, v2, v3};
+        if (v1.z < 0 && v2.z < 0 && v3.z < 0) continue;
+
         // View Frustum culling
         if (!cam.draw(vecs)) continue;
+
         faces.push_back(face);
     }
 
     // Draw each face
-    bool isFirst = true;
     for (std::size_t i = 0; i < faces.size(); i++) {
         const Vec3 n = faces[i].normal;
 
@@ -278,17 +280,14 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
                 finalColor.b = (int)((float)finalColor.b * (1.0 - t));
             }
         }
-        if (isFirst) {
-            finalColor = {255, 0, 0, 255};
-            isFirst = false;
-        }
 
         const float d = 1000.0;
         // On-screen positions of vertices // - on the y because actual y coordinates are flipped
+        // TODO: We shouldn't have points with negative z by the time we get here, but we do.
         std::array<Point, 10> vOut = {
-            Point {(int)(v1.x / v1.z * d) + inner_surface->w / 2, -(int)(v1.y / v1.z * d) + inner_surface->h / 2, v1.z},
-            Point {(int)(v2.x / v2.z * d) + inner_surface->w / 2, -(int)(v2.y / v2.z * d) + inner_surface->h / 2, v2.z},
-            Point {(int)(v3.x / v3.z * d) + inner_surface->w / 2, -(int)(v3.y / v3.z * d) + inner_surface->h / 2, v3.z},
+            Point {(int)(v1.x / fabsf(v1.z) * d) + inner_surface->w / 2, -(int)(v1.y / fabsf(v1.z) * d) + inner_surface->h / 2, v1.z},
+            Point {(int)(v2.x / fabsf(v2.z) * d) + inner_surface->w / 2, -(int)(v2.y / fabsf(v2.z) * d) + inner_surface->h / 2, v2.z},
+            Point {(int)(v3.x / fabsf(v3.z) * d) + inner_surface->w / 2, -(int)(v3.y / fabsf(v3.z) * d) + inner_surface->h / 2, v3.z},
         };
         int vOutSize = 3;
 
