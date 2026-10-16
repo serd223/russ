@@ -43,9 +43,9 @@ int main(int argc, const char** argv) {
         };
         const Face fs[] = {
             {{0, 1, 2}, {}},
-            {{1, 3, 2}, {}}
+            // {{1, 3, 2}, {}}
         };
-        Model floor_model(vs, fs, 5.0f, {0.0f, 0.0f, 0.0f});
+        Model floor_model(vs, fs, 2.0f, {0.0f, 0.0f, 0.0f});
         floor_model.color = {0, 0, 255, 255};
         models.push_back(floor_model);
     }

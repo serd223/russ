@@ -151,13 +151,6 @@ Renderer::Renderer(const char* title, int w, int h) {
 Renderer::~Renderer() {
         SDL::SDL_DestroyWindow(inner_window);
 }
-float Renderer::z_at(int x, int y) {
-    return m_z_buffer[y * m_z_buffer_stride + x];
-}
-
-float Renderer::z_set(int x, int y, float z) {
-    return m_z_buffer[y * m_z_buffer_stride + x] = z;
-}
 void Renderer::clear(Color color) {
     // TODO: error checking
     SDL::SDL_ClearSurface(inner_surface, (float)color.r / 255.0f, (float)color.g / 255.0f, (float)color.b / 255.0f, (float)color.a / 255.0f);
@@ -230,7 +223,7 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
     // Face culling
     thread_local std::vector<Face> faces; // leak
     faces.clear();
-    for (auto& face : model.faces) {
+    for (auto face : model.faces) {
         Vec3 v1 = verticesWorld[face.indices.a];
         Vec3 v2 = verticesWorld[face.indices.b];
         Vec3 v3 = verticesWorld[face.indices.c];
@@ -245,9 +238,70 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         v1 = vertices[face.indices.a];
         v2 = vertices[face.indices.b];
         v3 = vertices[face.indices.c];
-        const Vec3 vecs[3] = {v1, v2, v3};
-        if (v1.z < 0 && v2.z < 0 && v3.z < 0) continue;
+        Vec3 vecs[3] = {v1, v2, v3};
+        int num_negs = 0;
+        if (v1.z < 0) num_negs++;
+        if (v2.z < 0) num_negs++;
+        if (v3.z < 0) num_negs++;
+        if (num_negs == 3) continue;
+        if (num_negs == 1) {
+            // TODO: Generate quad
+        }
+        if (num_negs == 2) {
+            // TODO: Generate triangle
+            // TODO: Recalculate normal
+            // r.x = (pz -nz)(nx-px)/pz + px
+            if (v1.z >= 0) {
+                Vec3 vn2, vn3;
 
+                vn2.x = (v1.x - v2.z) * (v2.x - v1.x) / v1.z + v1.x;
+                vn2.y = (v1.y - v2.z) * (v2.y - v1.y) / v1.z + v1.y;
+                vn2.z = (v1.z - v2.z) * (v2.z - v1.z) / v1.z + v1.z;
+                vn3.x = (v1.x - v3.z) * (v3.x - v1.x) / v1.z + v1.x;
+                vn3.y = (v1.y - v3.z) * (v3.y - v1.y) / v1.z + v1.y;
+                vn3.z = (v1.z - v3.z) * (v3.z - v1.z) / v1.z + v1.z;
+
+                vertices.push_back(vn2);
+                face.indices.b = vertices.size() - 1;
+                vecs[1] = vn2;
+                vertices.push_back(vn3);
+                vecs[2] = vn2;
+                face.indices.c = vertices.size() - 1;
+            } else if (v2.z >= 0) {
+                Vec3 vn1, vn3;
+
+                vn1.x = (v2.x - v1.z) * (v1.x - v2.x) / v2.z + v2.x;
+                vn1.y = (v2.y - v1.z) * (v1.y - v2.y) / v2.z + v2.y;
+                vn1.z = (v2.z - v1.z) * (v1.z - v2.z) / v2.z + v2.z;
+                vn3.x = (v2.x - v3.z) * (v3.x - v2.x) / v2.z + v2.x;
+                vn3.y = (v2.y - v3.z) * (v3.y - v2.y) / v2.z + v2.y;
+                vn3.z = (v2.z - v3.z) * (v3.z - v2.z) / v2.z + v2.z;
+
+                vertices.push_back(vn1);
+                face.indices.a = vertices.size() - 1;
+                vecs[0] = vn1;
+                vertices.push_back(vn3);
+                vecs[2] = vn3;
+                face.indices.c = vertices.size() - 1;
+            } else if (v3.z >= 0) {
+                Vec3 vn1, vn2;
+
+                vn1.x = (v3.x - v1.z) * (v1.x - v3.x) / v3.z + v3.x;
+                vn1.y = (v3.y - v1.z) * (v1.y - v3.y) / v3.z + v3.y;
+                vn1.z = (v3.z - v1.z) * (v1.z - v3.z) / v3.z + v3.z;
+                vn2.x = (v3.x - v2.z) * (v2.x - v3.x) / v3.z + v3.x;
+                vn2.y = (v3.y - v2.z) * (v2.y - v3.y) / v3.z + v3.y;
+                vn2.z = (v3.z - v2.z) * (v2.z - v3.z) / v3.z + v3.z;
+
+                vertices.push_back(vn1);
+                face.indices.a = vertices.size() - 1;
+                vecs[0] = vn1;
+                vertices.push_back(vn2);
+                vecs[1] = vn2;
+                face.indices.b = vertices.size() - 1;
+            }
+            // Unreachable
+        }
         // View Frustum culling
         if (!cam.draw(vecs)) continue;
 
@@ -285,9 +339,9 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         // On-screen positions of vertices // - on the y because actual y coordinates are flipped
         // TODO: We shouldn't have points with negative z by the time we get here, but we do.
         std::array<Point, 10> vOut = {
-            Point {(int)(v1.x / fabsf(v1.z) * d) + inner_surface->w / 2, -(int)(v1.y / fabsf(v1.z) * d) + inner_surface->h / 2, v1.z},
-            Point {(int)(v2.x / fabsf(v2.z) * d) + inner_surface->w / 2, -(int)(v2.y / fabsf(v2.z) * d) + inner_surface->h / 2, v2.z},
-            Point {(int)(v3.x / fabsf(v3.z) * d) + inner_surface->w / 2, -(int)(v3.y / fabsf(v3.z) * d) + inner_surface->h / 2, v3.z},
+            Point {(int)(v1.x / v1.z * d) + inner_surface->w / 2, -(int)(v1.y / v1.z * d) + inner_surface->h / 2, v1.z},
+            Point {(int)(v2.x / v2.z * d) + inner_surface->w / 2, -(int)(v2.y / v2.z * d) + inner_surface->h / 2, v2.z},
+            Point {(int)(v3.x / v3.z * d) + inner_surface->w / 2, -(int)(v3.y / v3.z * d) + inner_surface->h / 2, v3.z},
         };
         int vOutSize = 3;
 

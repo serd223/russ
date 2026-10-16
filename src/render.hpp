@@ -66,8 +66,6 @@ class Renderer {
     void clear(Color color);
     void drawModel(Model& model, Color tint, bool doLighting = true);
     void drawTriangleFilled(Vec3 vertex0, Vec3 vertex1, Vec3 vertex2, Color color, float w, float h);
-    float z_at(int x, int y);
-    float z_set(int x, int y, float z);
     constexpr float* z() {
         return m_z_buffer.data();
     };

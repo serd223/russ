@@ -32,7 +32,6 @@ bool Camera::draw(std::span<const Vec3, 3> vertices) {
         bool plane = v.z > m_near && v.z < m_far; // Near and far plane
         bool side = false;
         for (size_t i = 0; i < m_sn.size(); i++) {
-            // TODO : Not really working
             if (m_sn[i] * v < 0) side = true;
         }
         if (plane && side) return true;

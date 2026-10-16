@@ -49,7 +49,7 @@ class Camera {
     Vec3 m_up;
     Vec3 m_right;
     Vec3 m_front;
-    const float m_far = 500.0f;
+    const float m_far = 750.0f;
     const float m_near = 6.2f;
     const float m_fc = 5.0;
 
