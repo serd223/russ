@@ -9,8 +9,6 @@
 #include <render.hpp>
 #include <xsimd/xsimd.hpp>
 
-typedef SDL::SDL_Color Color;
-
 Point Renderer::_intersection(Point& currentP, Point& nextP, iVec2& clipEdge) {
     if (clipEdge.x == 1 && clipEdge.y == 0) {
         float t = -currentP.y / (float)(nextP.y - currentP.y);
@@ -21,18 +19,18 @@ Point Renderer::_intersection(Point& currentP, Point& nextP, iVec2& clipEdge) {
         };
     }
     if (clipEdge.x == 0 && clipEdge.y == 1) {
-        float t = (inner_surface->w - currentP.x) / (float)(nextP.x - currentP.x);
+        float t = (platform->width() - currentP.x) / (float)(nextP.x - currentP.x);
         return Point {
-            inner_surface->w,
+            platform->width(),
             (int)round(currentP.y + (nextP.y - currentP.y) * t),
             currentP.z + (nextP.z - currentP.z) * t
         };
     }
     if (clipEdge.x == -1 && clipEdge.y == 0) {
-        float t = (inner_surface->h - currentP.y) / (float)(nextP.y - currentP.y);
+        float t = (platform->height() - currentP.y) / (float)(nextP.y - currentP.y);
         return Point {
             (int)round(currentP.x + (nextP.x - currentP.x) * t),
-            inner_surface->h,
+            platform->height(),
             currentP.z + (nextP.z - currentP.z) * t  
         };
     }
@@ -52,10 +50,10 @@ bool Renderer::_inEdge(Point& p, iVec2& clipEdge) {
         return (p.y > 0);
     }
     if (clipEdge.x == 0 && clipEdge.y == 1) {
-        return (p.x < inner_surface->w);
+        return (p.x < platform->width());
     }
     if (clipEdge.x == -1 && clipEdge.y == 0) {
-        return (p.y < inner_surface->h);
+        return (p.y < platform->height());
     }
     if (clipEdge.x == 0 && clipEdge.y == -1) {
         return (p.x > 0);
@@ -130,17 +128,9 @@ void Model::rotZ(float angle) {
     recalculateNormals();
 }
 
-Renderer::Renderer(const char* title, int w, int h) {
-    inner_window = SDL::SDL_CreateWindow(title, w, h, 0);
-    if (inner_window == NULL) {
-        fprintf(stderr, "[ERROR] Couldn't create window: %s\n", SDL::SDL_GetError());
-        throw;
-    }
-    inner_surface = SDL::SDL_GetWindowSurface(inner_window);
-    if (inner_surface == NULL) {
-        fprintf(stderr, "[ERROR] Couldn't create surface: %s\n", SDL::SDL_GetError());
-        throw;
-    }
+Renderer::Renderer(IPlatform* p, const char* title, int w, int h) {
+    platform = p;
+    platform->init(title, w, h);
     m_z_buffer.resize(w * h);
     for (size_t i = 0; i < (size_t)(w * h); i++) {
         m_z_buffer[i] = MAXFLOAT;
@@ -149,11 +139,10 @@ Renderer::Renderer(const char* title, int w, int h) {
 }
 
 Renderer::~Renderer() {
-        SDL::SDL_DestroyWindow(inner_window);
+    platform->destroy();
 }
 void Renderer::clear(Color color) {
-    // TODO: error checking
-    SDL::SDL_ClearSurface(inner_surface, (float)color.r / 255.0f, (float)color.g / 255.0f, (float)color.b / 255.0f, (float)color.a / 255.0f);
+    platform->clear(color);
     for (auto& f : m_z_buffer) {
         f = MAXFLOAT;
     }
@@ -163,7 +152,7 @@ void Renderer::clear(Color color) {
 constexpr int chunk_len = 4;
 
 void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
-    const float w = inner_surface->w, h = inner_surface->h;
+    const float w = platform->width(), h = platform->height();
     Vec3 position = model.pos - cam.pos;
     const Mat3x3 scaleMat = {
         .r1 = {model.scale, 0, 0},
@@ -339,9 +328,9 @@ void Renderer::drawModel(Model& model, Color tint, bool doLighting) {
         // On-screen positions of vertices // - on the y because actual y coordinates are flipped
         // TODO: We shouldn't have points with negative z by the time we get here, but we do.
         std::array<Point, 10> vOut = {
-            Point {(int)(v1.x / v1.z * d) + inner_surface->w / 2, -(int)(v1.y / v1.z * d) + inner_surface->h / 2, v1.z},
-            Point {(int)(v2.x / v2.z * d) + inner_surface->w / 2, -(int)(v2.y / v2.z * d) + inner_surface->h / 2, v2.z},
-            Point {(int)(v3.x / v3.z * d) + inner_surface->w / 2, -(int)(v3.y / v3.z * d) + inner_surface->h / 2, v3.z},
+            Point {(int)(v1.x / v1.z * d) + platform->width() / 2, -(int)(v1.y / v1.z * d) + platform->height() / 2, v1.z},
+            Point {(int)(v2.x / v2.z * d) + platform->width() / 2, -(int)(v2.y / v2.z * d) + platform->height() / 2, v2.z},
+            Point {(int)(v3.x / v3.z * d) + platform->width() / 2, -(int)(v3.y / v3.z * d) + platform->height() / 2, v3.z},
         };
         int vOutSize = 3;
 
@@ -421,7 +410,7 @@ void Renderer::drawTriangleFilled(Vec3 vertex0, Vec3 vertex1, Vec3 vertex2, Colo
     const xVec3 v1v2 = v2 - v1;
     const xVec3 v2v0 = v0 - v2;
 
-    const SDL::Uint32 pixel = SDL::SDL_MapSurfaceRGB(inner_surface, color.r, color.g, color.b);
+    const uint32_t pixel = platform->mapColor(color);
     static const xsimd::batch<float> xoffsets = {0.0, 1.0, 2.0, 3.0};
     const Vec3 n = N.get(0);
     const float in = inverse_N.get(0);
@@ -434,7 +423,7 @@ void Renderer::drawTriangleFilled(Vec3 vertex0, Vec3 vertex1, Vec3 vertex2, Colo
 
     // Each pixel can be processed in parallel without data races
     for (int y = miny; y <= maxy; y++) {
-        SDL::Uint32* row = reinterpret_cast<SDL::Uint32*>(reinterpret_cast<unsigned char*>(inner_surface->pixels) + (y * inner_surface->pitch));
+        uint32_t* row = reinterpret_cast<uint32_t*>(reinterpret_cast<unsigned char*>(platform->data()) + (y * platform->stride()));
         float* z_row = z() + y * z_stride();
         for (int ix = 0; ix < chunk_count; ix++) {
             const int x0 = minx + chunk_len * ix;

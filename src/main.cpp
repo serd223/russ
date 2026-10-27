@@ -1,6 +1,8 @@
-#include <camera.hpp>
+#include <SDL3/SDL.h>
 #include <math.h>
 #include <stdio.h>
+
+#include <camera.hpp>
 #include <rmath.hpp>
 #include <render.hpp>
 
@@ -11,6 +13,54 @@ typedef enum {
     KEY_RIGHT,
     KEYS_COUNT
 } RussKey;
+
+class SdlPlatform : public IPlatform {
+public:
+    SDL_Window* inner_window;
+    SDL_Surface* inner_surface;
+
+    void init(const char* title, int w, int h) override {
+        inner_window = SDL_CreateWindow(title, w, h, 0);
+        if (inner_window == NULL) {
+            fprintf(stderr, "[ERROR] Couldn't create window: %s\n", SDL_GetError());
+            throw;
+        }
+        inner_surface = SDL_GetWindowSurface(inner_window);
+        if (inner_surface == NULL) {
+            fprintf(stderr, "[ERROR] Couldn't create surface: %s\n", SDL_GetError());
+            throw;
+        }
+    }
+
+    void destroy() override {
+        SDL_DestroyWindow(inner_window);
+    }
+
+    void clear(Color color) override {
+        // TODO: error checking
+        SDL_ClearSurface(inner_surface, (float)color.r / 255.0f, (float)color.g / 255.0f, (float)color.b / 255.0f, (float)color.a / 255.0f);
+    }
+
+    uint32_t mapColor(Color color) override {
+        return SDL_MapSurfaceRGB(inner_surface, color.r, color.g, color.b);
+    }
+
+    int width() override {
+        return inner_surface->w;
+    }
+
+    int height() override {
+        return inner_surface->h;
+    }
+
+    int stride() override {
+        return inner_surface->pitch;
+    }
+
+    void* data() override {
+        return inner_surface->pixels;
+    }
+};
 
 int main(int argc, const char** argv) {
     if (argc < 2) {
@@ -49,10 +99,12 @@ int main(int argc, const char** argv) {
         floor_model.color = {0, 0, 255, 255};
         models.push_back(floor_model);
     }
-    SDL::SDL_Init(SDL_INIT_VIDEO);
-    Renderer render = Renderer("russ - dev", 1200, 900);
+
+    SDL_Init(SDL_INIT_VIDEO);
+    SdlPlatform sdl = SdlPlatform();
+    Renderer render = Renderer(&sdl, "russ - dev", 1200, 900);
     bool mouse_hide = false, mouse_hide_override = true;
-    SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, mouse_hide); // grab and hide mouse cursor
+    SDL_SetWindowRelativeMouseMode(sdl.inner_window, mouse_hide); // grab and hide mouse cursor
     render.cam.pos.y = 80.;
     render.cam.rot(Vec3(
         -M_PI_4 / 3.0,
@@ -62,23 +114,23 @@ int main(int argc, const char** argv) {
     bool isMouseLeftDown = false;
     Vec2 mouseRel;
 
-    SDL::Uint32 now = SDL::SDL_GetPerformanceCounter();
-    SDL::Uint32 last;
+    Uint32 now = SDL_GetPerformanceCounter();
+    Uint32 last;
     double delta;
 
     std::vector<bool> keys;
     keys.resize(KEYS_COUNT);
-    SDL::SDL_Event event;
+    SDL_Event event;
     for (;;) {
         last = now;
-        now = SDL::SDL_GetPerformanceCounter();
-        delta = (double)(now - last) / (double)(SDL::SDL_GetPerformanceFrequency());
+        now = SDL_GetPerformanceCounter();
+        delta = (double)(now - last) / (double)(SDL_GetPerformanceFrequency());
         (void)delta;
 
         mouseRel.x = 0.0f, mouseRel.y = 0.0f;
-        while (SDL::SDL_PollEvent(&event)) {
-            if (event.type == SDL::SDL_EVENT_QUIT) goto loop_end;
-            else if (event.type == SDL::SDL_EVENT_KEY_UP) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_EVENT_QUIT) goto loop_end;
+            else if (event.type == SDL_EVENT_KEY_UP) {
                 if (SDLK_A <= event.key.key && event.key.key <= SDLK_Z) {
                     keys[event.key.key - SDLK_A + 'A'] = false;
                 }
@@ -92,7 +144,7 @@ int main(int argc, const char** argv) {
                 } break;
                 default: break;
                 }
-            } else if (event.type == SDL::SDL_EVENT_KEY_DOWN) {
+            } else if (event.type == SDL_EVENT_KEY_DOWN) {
                 if (SDLK_A <= event.key.key && event.key.key <= SDLK_Z) {
                     keys[event.key.key - SDLK_A + 'A'] = true;
                 }
@@ -107,30 +159,30 @@ int main(int argc, const char** argv) {
                 case SDLK_G: {
                     mouse_hide = !mouse_hide;
                     mouse_hide_override = !mouse_hide_override;
-                    SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, mouse_hide);
+                    SDL_SetWindowRelativeMouseMode(sdl.inner_window, mouse_hide);
                 } break;
                 default: break;
                 }
-            } else if (event.type == SDL::SDL_EVENT_MOUSE_BUTTON_DOWN) {
+            } else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
                 if (event.button.button == SDL_BUTTON_LEFT) {
                     if (!mouse_hide_override) {
                         mouse_hide = false;
-                        SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, mouse_hide);
+                        SDL_SetWindowRelativeMouseMode(sdl.inner_window, mouse_hide);
                     }
                     isMouseLeftDown = true;
                 }
-            } else if (event.type == SDL::SDL_EVENT_MOUSE_BUTTON_UP) {
+            } else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
                 if (event.button.button == SDL_BUTTON_LEFT) {
                     if (!mouse_hide_override) {
                         mouse_hide = true;
-                        SDL::SDL_SetWindowRelativeMouseMode(render.inner_window, mouse_hide);
+                        SDL_SetWindowRelativeMouseMode(sdl.inner_window, mouse_hide);
                     }
                     isMouseLeftDown = false;
                 }
-            } else if (event.type == SDL::SDL_EVENT_MOUSE_MOTION) {
+            } else if (event.type == SDL_EVENT_MOUSE_MOTION) {
                 mouseRel.x = event.motion.xrel;
                 mouseRel.y = event.motion.yrel;
-            } else if (event.type == SDL::SDL_EVENT_MOUSE_WHEEL) {
+            } else if (event.type == SDL_EVENT_MOUSE_WHEEL) {
                 models[0].scale += event.wheel.y * delta * 100.0f;
             }
         }
@@ -178,7 +230,7 @@ int main(int argc, const char** argv) {
             render.drawModel(models[i], {255, 0, 0, 255});
         }
 
-        SDL::SDL_UpdateWindowSurface(render.inner_window);
+        SDL_UpdateWindowSurface(sdl.inner_window);
     }
     loop_end:
 

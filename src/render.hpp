@@ -2,19 +2,14 @@
 
 /*
     Main Renderer Interface
-    - Handles SDL window creation and manages drawable surface
+    - Handles initialization and manages drawable surface
 */
 
+#include "platform.hpp"
 #include <span>
 #include <vector>
 #include <camera.hpp>
 #include <rmath.hpp>
-
-namespace SDL {
-    #include <SDL3/SDL.h>
-}
-
-typedef SDL::SDL_Color Color;
 
 class Face {
     public:
@@ -57,11 +52,10 @@ struct Point {
 
 class Renderer {
     public:
-    SDL::SDL_Window* inner_window;
-    SDL::SDL_Surface* inner_surface;
+    IPlatform* platform;
     Camera cam = Camera(Vec3(0, 0, 0));
 
-    Renderer(const char* title, int w, int h);
+    Renderer(IPlatform* p, const char* title, int w, int h);
     ~Renderer();
     void clear(Color color);
     void drawModel(Model& model, Color tint, bool doLighting = true);
